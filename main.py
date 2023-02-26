@@ -72,60 +72,61 @@ class Calc_gui(QtWidgets.QMainWindow):
         central_widget.setLayout(grid)
         self.setCentralWidget(central_widget)
 
-        # Меню приложения (верхняя плашка)
-        # 1. file_menu
-        # 1.1. Расчет
-        calc_menu = QtGui.QAction(calc_ico, 'Расчет', self)
-        calc_menu.setShortcut('Ctrl+D')
-        calc_menu.setStatusTip('Провести расчет')
-        # calc_menu.triggered.connect(self.calculate)
-        # 1.2. График
-        chart_menu = QtGui.QAction(save_ico, 'Сохранить график', self)
-        chart_menu.setShortcut('Ctrl+A')
-        chart_menu.setStatusTip('Сохранить график в JPG')
-        # chart_menu.triggered.connect(self.save_chart)
-        # 1.3. Выбор методики
-        method_menu = QtWidgets.QMenu('Выбор методики расчета', self)
-        method_menu.setIcon(book_ico)
-        # 1.3.1. Пожар пролива
-        strait_fire_calc = QtGui.QAction(book_ico, 'Пожар пролива', self)
+        # # Меню приложения (верхняя плашка)
+        # # 1. file_menu
+        # # 1.1. Расчет
+        # calc_menu = QtGui.QAction(calc_ico, 'Расчет', self)
+        # calc_menu.setShortcut('Ctrl+D')
+        # calc_menu.setStatusTip('Провести расчет')
+        # # calc_menu.triggered.connect(self.calculate)
+        # # 1.2. График
+        # chart_menu = QtGui.QAction(save_ico, 'Сохранить график', self)
+        # chart_menu.setShortcut('Ctrl+A')
+        # chart_menu.setStatusTip('Сохранить график в JPG')
+        # # chart_menu.triggered.connect(self.save_chart)
+        # # 1.3. Выбор методики
+        # method_menu = QtWidgets.QMenu('Выбор методики расчета', self)
+        # method_menu.setIcon(book_ico)
+        # # 1.3.1. Пожар пролива
+        # strait_fire_calc = QtGui.QAction(book_ico, 'Пожар пролива', self)
         # strait_fire_calc.triggered.connect(self.change_method)
-        method_menu.addAction(strait_fire_calc)
-        # 1.3.2. Взрыв СП
-        explosion_sp_calc = QtGui.QAction(book_ico, 'Взрыв (СП 12.13130-2009)', self)
+        # method_menu.addAction(strait_fire_calc)
+        # # 1.3.2. Взрыв СП
+        # explosion_sp_calc = QtGui.QAction(book_ico, 'Взрыв (СП 12.13130-2009)', self)
         # explosion_sp_calc.triggered.connect(self.change_method)
         # method_menu.addAction(explosion_sp_calc)
-        # 1.3.3. Взрыв ТВС
-        explosion_tvs_calc = QtGui.QAction(book_ico, 'Взрыв (Методика ТВС)', self)
-        # explosion_tvs_calc.triggered.connect(self.change_method)
-        # method_menu.addAction(explosion_tvs_calc)
-        # 1.3.4. Огненный шар
-        fireball_calc = QtGui.QAction(book_ico, 'Огненный шар', self)
-        # fireball_calc.triggered.connect(self.change_method)
-        # 1.3.4. Вспышка-НКПР
-        lclp_calc = QtGui.QAction(book_ico, 'Пожар-вспышка', self)
-        # lclp_calc.triggered.connect(self.change_method)
-        # 1.3.4. Вспышка-НКПР
-        evaporation_calc = QtGui.QAction(book_ico, 'Испарение ненагретой жидкости', self)
-        # evaporation_calc.triggered.connect(self.change_method)
-        # 1.3._. Вспышка-НКПР
-        about_prog = QtGui.QAction(question_ico, "Cправка", self)
-        # about_prog.triggered.connect(self.about_prog)
+        # # 1.3.3. Взрыв ТВС
+        # explosion_tvs_calc = QtGui.QAction(book_ico, 'Взрыв (Методика ТВС)', self)
+        # # explosion_tvs_calc.triggered.connect(self.change_method)
+        # # method_menu.addAction(explosion_tvs_calc)
+        # # 1.3.4. Огненный шар
+        # fireball_calc = QtGui.QAction(book_ico, 'Огненный шар', self)
+        # # fireball_calc.triggered.connect(self.change_method)
+        # # 1.3.4. Вспышка-НКПР
+        # lclp_calc = QtGui.QAction(book_ico, 'Пожар-вспышка', self)
+        # # lclp_calc.triggered.connect(self.change_method)
+        # # 1.3.4. Вспышка-НКПР
+        # evaporation_calc = QtGui.QAction(book_ico, 'Испарение ненагретой жидкости', self)
+        # # evaporation_calc.triggered.connect(self.change_method)
+        # # 1.3._. Вспышка-НКПР
+        # about_prog = QtGui.QAction(question_ico, "Cправка", self)
+        # # about_prog.triggered.connect(self.about_prog)
 
         # Меню
         menubar = self.menuBar()
         file_menu = menubar.addMenu('Файл')
-        file_menu.addAction(calc_menu)
-        file_menu.addAction(chart_menu)
-        method_menu = menubar.addMenu('Методики')
-        method_menu.addAction(strait_fire_calc)
-        method_menu.addAction(explosion_sp_calc)
-        method_menu.addAction(explosion_tvs_calc)
-        method_menu.addAction(fireball_calc)
-        method_menu.addAction(lclp_calc)
-        method_menu.addAction(evaporation_calc)
-        help_menu = menubar.addMenu('Справка')
-        help_menu.addAction(about_prog)
+        file_menu.addAction(calc_ico, 'Расчет', self.change_method)
+        # file_menu.addAction(calc_menu)
+        # file_menu.addAction(chart_menu)
+        # method_menu = menubar.addMenu('Методики')
+        # method_menu.addAction(strait_fire_calc)
+        # method_menu.addAction(explosion_sp_calc)
+        # method_menu.addAction(explosion_tvs_calc)
+        # method_menu.addAction(fireball_calc)
+        # method_menu.addAction(lclp_calc)
+        # method_menu.addAction(evaporation_calc)
+        # help_menu = menubar.addMenu('Справка')
+        # help_menu.addAction(about_prog)
 
         if not parent:
             self.show()
@@ -156,28 +157,30 @@ class Calc_gui(QtWidgets.QMainWindow):
     def set_param_names_in_table(self):
         self.table_data.setRowCount(0)
         text = self.selected_method.text()
-        names = [('Площадь, м2', 'm, кг/(с*м2) ', 'Mmol, кг/кмоль', 'Ткип, град.С', 'Ветер, м/с'),
-                 ('Масса, кг', 'Qсг, кДж/кг ', 'z, -'),
-                 ('Класс в-ва', 'Класс прост-ва', 'Масса, кг', 'Qсг, кДж/кг', 'sigma, -', 'Энергозапас, -'),
-                 ('Масса, кг', 'Ef, кВт/м2'), ('Масса, кг', 'Mmol, кг/кмоль', 'Ткип, град.С', 'НКПР, об.%'),
-                 ('Давление пара, кПа', 'Mmol, кг/кмоль', 'Площадь пролива, м2')]
-        rows_tuple = (5, 3, 6, 2, 4, 3)
-
-        ind = METHODS.index(text)
-        name = names[ind]
-        rows = rows_tuple[ind]
-
-        for row in range(rows):
-            self.table_data.insertRow(row)
-            for col in range(2):
-                if col == 0:
-                    item = QtWidgets.QTableWidgetItem(name[row])
-                    item.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)
-                    self.table_data.setItem(row, col, item)
-                    self.table_data.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
+        print(text)
+        # names = [('Площадь, м2', 'm, кг/(с*м2) ', 'Mmol, кг/кмоль', 'Ткип, град.С', 'Ветер, м/с'),
+        #          ('Масса, кг', 'Qсг, кДж/кг ', 'z, -'),
+        #          ('Класс в-ва', 'Класс прост-ва', 'Масса, кг', 'Qсг, кДж/кг', 'sigma, -', 'Энергозапас, -'),
+        #          ('Масса, кг', 'Ef, кВт/м2'), ('Масса, кг', 'Mmol, кг/кмоль', 'Ткип, град.С', 'НКПР, об.%'),
+        #          ('Давление пара, кПа', 'Mmol, кг/кмоль', 'Площадь пролива, м2')]
+        # rows_tuple = (5, 3, 6, 2, 4, 3)
+        #
+        # ind = METHODS.index(text)
+        # name = names[ind]
+        # rows = rows_tuple[ind]
+        #
+        # for row in range(rows):
+        #     self.table_data.insertRow(row)
+        #     for col in range(2):
+        #         if col == 0:
+        #             item = QtWidgets.QTableWidgetItem(name[row])
+        #             item.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)
+        #             self.table_data.setItem(row, col, item)
+        #             self.table_data.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
 
     def change_method(self):
         text = self.sender().text()
+        print(self.sender().data())
         self.chart_layout.clear()
         self.result_text.setPlainText('')
         self.selected_method.setText(text)

@@ -72,61 +72,24 @@ class Calc_gui(QtWidgets.QMainWindow):
         central_widget.setLayout(grid)
         self.setCentralWidget(central_widget)
 
-        # # Меню приложения (верхняя плашка)
-        # # 1. file_menu
-        # # 1.1. Расчет
-        # calc_menu = QtGui.QAction(calc_ico, 'Расчет', self)
-        # calc_menu.setShortcut('Ctrl+D')
-        # calc_menu.setStatusTip('Провести расчет')
-        # # calc_menu.triggered.connect(self.calculate)
-        # # 1.2. График
-        # chart_menu = QtGui.QAction(save_ico, 'Сохранить график', self)
-        # chart_menu.setShortcut('Ctrl+A')
-        # chart_menu.setStatusTip('Сохранить график в JPG')
-        # # chart_menu.triggered.connect(self.save_chart)
-        # # 1.3. Выбор методики
-        # method_menu = QtWidgets.QMenu('Выбор методики расчета', self)
-        # method_menu.setIcon(book_ico)
-        # # 1.3.1. Пожар пролива
-        # strait_fire_calc = QtGui.QAction(book_ico, 'Пожар пролива', self)
-        # strait_fire_calc.triggered.connect(self.change_method)
-        # method_menu.addAction(strait_fire_calc)
-        # # 1.3.2. Взрыв СП
-        # explosion_sp_calc = QtGui.QAction(book_ico, 'Взрыв (СП 12.13130-2009)', self)
-        # explosion_sp_calc.triggered.connect(self.change_method)
-        # method_menu.addAction(explosion_sp_calc)
-        # # 1.3.3. Взрыв ТВС
-        # explosion_tvs_calc = QtGui.QAction(book_ico, 'Взрыв (Методика ТВС)', self)
-        # # explosion_tvs_calc.triggered.connect(self.change_method)
-        # # method_menu.addAction(explosion_tvs_calc)
-        # # 1.3.4. Огненный шар
-        # fireball_calc = QtGui.QAction(book_ico, 'Огненный шар', self)
-        # # fireball_calc.triggered.connect(self.change_method)
-        # # 1.3.4. Вспышка-НКПР
-        # lclp_calc = QtGui.QAction(book_ico, 'Пожар-вспышка', self)
-        # # lclp_calc.triggered.connect(self.change_method)
-        # # 1.3.4. Вспышка-НКПР
-        # evaporation_calc = QtGui.QAction(book_ico, 'Испарение ненагретой жидкости', self)
-        # # evaporation_calc.triggered.connect(self.change_method)
-        # # 1.3._. Вспышка-НКПР
-        # about_prog = QtGui.QAction(question_ico, "Cправка", self)
-        # # about_prog.triggered.connect(self.about_prog)
-
-        # Меню
+        # Меню приложения (верхняя плашка)
         menubar = self.menuBar()
         file_menu = menubar.addMenu('Файл')
         file_menu.addAction(calc_ico, 'Расчет', self.change_method)
-        # file_menu.addAction(calc_menu)
-        # file_menu.addAction(chart_menu)
-        # method_menu = menubar.addMenu('Методики')
-        # method_menu.addAction(strait_fire_calc)
-        # method_menu.addAction(explosion_sp_calc)
-        # method_menu.addAction(explosion_tvs_calc)
-        # method_menu.addAction(fireball_calc)
-        # method_menu.addAction(lclp_calc)
-        # method_menu.addAction(evaporation_calc)
-        # help_menu = menubar.addMenu('Справка')
-        # help_menu.addAction(about_prog)
+        file_menu.addAction(save_ico, 'Сохранить график', self.save_chart)
+        method_menu = menubar.addMenu('Методики')
+        fire_menu = method_menu.addMenu(book_ico, 'Горение')
+        fire_menu.addAction(book_ico, 'Пожар пролива', self.change_method)
+        fire_menu.addAction(book_ico, 'Пожар-вспышка', self.change_method)
+        fire_menu.addAction(book_ico, 'Огненный шар', self.change_method)
+        expl_menu = method_menu.addMenu(book_ico, 'Взрыв')
+        expl_menu.addAction(book_ico, 'Взрыв (СП 12.13130-2009)', self.change_method)
+        expl_menu.addAction(book_ico, 'Взрыв (Методика ТВС)', self.change_method)
+
+
+        method_menu.addAction(book_ico, 'Испарение ненагретой жидкости', self.change_method)
+        help_menu = menubar.addMenu('Справка')
+        help_menu.addAction(question_ico, "Cправка", self.about_prog)
 
         if not parent:
             self.show()
@@ -141,6 +104,19 @@ class Calc_gui(QtWidgets.QMainWindow):
         msg.setText(f"Разработчик: ООО ИНТЕЛПРОЕКТ (email: inteldocs@yandex.ru)")
         msg.exec()
         return
+
+    def change_method(self):
+        """
+        Функция для меню при смене методики расчета
+        :return:
+        """
+        text = self.sender().text()
+        print(self.sender().data())
+        self.chart_layout.clear()
+        self.result_text.setPlainText('')
+        self.selected_method.setText(text)
+        self.set_param_names_in_table()
+
 
     def table_data_view(self):
         """
@@ -178,13 +154,7 @@ class Calc_gui(QtWidgets.QMainWindow):
         #             self.table_data.setItem(row, col, item)
         #             self.table_data.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
 
-    def change_method(self):
-        text = self.sender().text()
-        print(self.sender().data())
-        self.chart_layout.clear()
-        self.result_text.setPlainText('')
-        self.selected_method.setText(text)
-        self.set_param_names_in_table()
+
 
     def get_data_in_table(self):
         if not self.chek_server():

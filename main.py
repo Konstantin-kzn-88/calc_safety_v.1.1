@@ -9,14 +9,23 @@ import sys
 import os
 from pathlib import Path
 import time
+import webbrowser
 
 from PySide6 import QtWidgets, QtGui, QtCore
 import pyqtgraph as pg
 import pyqtgraph.exporters as pg_exp
 
+METODS_AND_PARAMETRS = {
+    'Пожар пролива': ('Площадь, м2', 'm, кг/(с*м2) ', 'Mmol, кг/кмоль', 'Ткип, град.С', 'Ветер, м/с')}
 
-METHODS = ('Пожар пролива', 'Взрыв (СП 12.13130-2009)', 'Взрыв (Методика ТВС)', 'Огненный шар', 'Пожар-вспышка',
-           'Испарение ненагретой жидкости')
+
+# , 'Взрыв (СП 12.13130-2009)', 'Взрыв (Методика ТВС)',
+#            'Огненный шар', 'Пожар-вспышка', 'Испарение ненагретой жидкости'
+# PARAMETRS = [('Площадь, м2', 'm, кг/(с*м2) ', 'Mmol, кг/кмоль', 'Ткип, град.С', 'Ветер, м/с'),
+#              ('Масса, кг', 'Qсг, кДж/кг ', 'z, -'),
+#              ('Класс в-ва', 'Класс прост-ва', 'Масса, кг', 'Qсг, кДж/кг', 'sigma, -', 'Энергозапас, -'),
+#              ('Масса, кг', 'Ef, кВт/м2'), ('Масса, кг', 'Mmol, кг/кмоль', 'Ткип, град.С', 'НКПР, об.%'),
+#              ('Давление пара, кПа', 'Mmol, кг/кмоль', 'Площадь пролива, м2')]
 
 
 class Calc_gui(QtWidgets.QMainWindow):
@@ -28,6 +37,7 @@ class Calc_gui(QtWidgets.QMainWindow):
         calc_ico = QtGui.QIcon(str(Path(os.getcwd()).parents[0]) + '/calc_safety_v.1.1/ico/comp.png')
         book_ico = QtGui.QIcon(str(Path(os.getcwd()).parents[0]) + '/calc_safety_v.1.1/ico/book.png')
         question_ico = QtGui.QIcon(str(Path(os.getcwd()).parents[0]) + '/calc_safety_v.1.1/ico/question.png')
+        select_ico = QtGui.QIcon(str(Path(os.getcwd()).parents[0]) + '/calc_safety_v.1.1/ico/select.png')
 
         # Главное окно
         self.resize(1300, 1200)
@@ -62,7 +72,7 @@ class Calc_gui(QtWidgets.QMainWindow):
         self.chart_layout.setBackground('w')
 
         layout_chart = QtWidgets.QFormLayout(self)
-        GB_chart = QtWidgets.QGroupBox('Графическое отображение')
+        GB_chart = QtWidgets.QGroupBox('Расчетные зависимости')
         GB_chart.setStyleSheet("QGroupBox { font-weight : bold; }")
         layout_chart.addRow("", self.chart_layout)
         GB_chart.setLayout(layout_chart)
@@ -75,19 +85,34 @@ class Calc_gui(QtWidgets.QMainWindow):
         # Меню приложения (верхняя плашка)
         menubar = self.menuBar()
         file_menu = menubar.addMenu('Файл')
-        file_menu.addAction(calc_ico, 'Расчет', self.change_method)
+        file_menu.addAction(calc_ico, 'Расчет', self.calculation)
         file_menu.addAction(save_ico, 'Сохранить график', self.save_chart)
+        # 1. Методики
         method_menu = menubar.addMenu('Методики')
-        fire_menu = method_menu.addMenu(book_ico, 'Горение')
+        # 1.1. Горение
+        fire_menu = method_menu.addMenu(select_ico, 'Горение')
         fire_menu.addAction(book_ico, 'Пожар пролива', self.change_method)
         fire_menu.addAction(book_ico, 'Пожар-вспышка', self.change_method)
         fire_menu.addAction(book_ico, 'Огненный шар', self.change_method)
-        expl_menu = method_menu.addMenu(book_ico, 'Взрыв')
+        # 2. Взрыв
+        expl_menu = method_menu.addMenu(select_ico, 'Взрыв')
         expl_menu.addAction(book_ico, 'Взрыв (СП 12.13130-2009)', self.change_method)
         expl_menu.addAction(book_ico, 'Взрыв (Методика ТВС)', self.change_method)
-
-
-        method_menu.addAction(book_ico, 'Испарение ненагретой жидкости', self.change_method)
+        # 3. Токсическое поражение
+        toxic_menu = method_menu.addMenu(select_ico, 'Токсическое поражение')
+        toxic_menu.addAction(book_ico, 'Легкий газ (первичное облако)', self.change_method)
+        toxic_menu.addAction(book_ico, 'Легкий газ (вторичное облако)', self.change_method)
+        toxic_menu.addAction(book_ico, 'Тяжелый газ (первичное облако)', self.change_method)
+        toxic_menu.addAction(book_ico, 'Тяжелый газ (вторичное облако)', self.change_method)
+        # 4. Количество опасного вещества
+        mass_menu = method_menu.addMenu(select_ico, 'Оценка количества опасного вещества')
+        mass_menu.addAction(book_ico, 'Истечение газа (емкость)', self.change_method)
+        mass_menu.addAction(book_ico, 'Истечение газа (трубопровод)', self.change_method)
+        mass_menu.addAction(book_ico, 'Истечение жидкости (емкость)', self.change_method)
+        mass_menu.addAction(book_ico, 'Истечение жидкости (трубопровод)', self.change_method)
+        mass_menu.addAction(book_ico, 'Испарение жидкости', self.change_method)
+        mass_menu.addAction(book_ico, 'Испарение СУГ', self.change_method)
+        # 5. Справка
         help_menu = menubar.addMenu('Справка')
         help_menu.addAction(question_ico, "Cправка", self.about_prog)
 
@@ -103,6 +128,7 @@ class Calc_gui(QtWidgets.QMainWindow):
         msg.setWindowTitle("Информация")
         msg.setText(f"Разработчик: ООО ИНТЕЛПРОЕКТ (email: inteldocs@yandex.ru)")
         msg.exec()
+        webbrowser.open_new(str(Path(os.getcwd()).parents[0]) + '/calc_safety_v.1.1/help/help.pdf')
         return
 
     def change_method(self):
@@ -110,13 +136,16 @@ class Calc_gui(QtWidgets.QMainWindow):
         Функция для меню при смене методики расчета
         :return:
         """
+        # 1. Текст отправителя
         text = self.sender().text()
-        print(self.sender().data())
+        # 2. Очистка графика
         self.chart_layout.clear()
+        # 3. Очистка результатов расчета
         self.result_text.setPlainText('')
+        # 4. Установка для Label selected_method наименование методики
         self.selected_method.setText(text)
+        # 5. Установка наименования параметров
         self.set_param_names_in_table()
-
 
     def table_data_view(self):
         """
@@ -131,64 +160,47 @@ class Calc_gui(QtWidgets.QMainWindow):
         self.table_data.setHorizontalHeaderItem(1, item)
 
     def set_param_names_in_table(self):
+        """
+        Функция отрисовки таблицы для получения
+        исходных данных для расчета
+        """
         self.table_data.setRowCount(0)
         text = self.selected_method.text()
-        print(text)
-        # names = [('Площадь, м2', 'm, кг/(с*м2) ', 'Mmol, кг/кмоль', 'Ткип, град.С', 'Ветер, м/с'),
-        #          ('Масса, кг', 'Qсг, кДж/кг ', 'z, -'),
-        #          ('Класс в-ва', 'Класс прост-ва', 'Масса, кг', 'Qсг, кДж/кг', 'sigma, -', 'Энергозапас, -'),
-        #          ('Масса, кг', 'Ef, кВт/м2'), ('Масса, кг', 'Mmol, кг/кмоль', 'Ткип, град.С', 'НКПР, об.%'),
-        #          ('Давление пара, кПа', 'Mmol, кг/кмоль', 'Площадь пролива, м2')]
-        # rows_tuple = (5, 3, 6, 2, 4, 3)
-        #
-        # ind = METHODS.index(text)
-        # name = names[ind]
-        # rows = rows_tuple[ind]
-        #
-        # for row in range(rows):
-        #     self.table_data.insertRow(row)
-        #     for col in range(2):
-        #         if col == 0:
-        #             item = QtWidgets.QTableWidgetItem(name[row])
-        #             item.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)
-        #             self.table_data.setItem(row, col, item)
-        #             self.table_data.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
+        name = METODS_AND_PARAMETRS[text]
+        rows = len(METODS_AND_PARAMETRS[text])
 
+        for row in range(rows):
+            self.table_data.insertRow(row)
+            COLUMN = 0 # наименование параметров только в первой колонке
+            item = QtWidgets.QTableWidgetItem(name[row])
+            item.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)
+            self.table_data.setItem(row, COLUMN, item)
+            self.table_data.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
 
-
-    def get_data_in_table(self):
-        if not self.chek_server():
-            return
+    def get_data_in_table(self) -> list:
+        """
+        Функция получения параметров из таблицы, а так же их проверка на число
+        :return: data_list - список значений параметров для расчета
+        """
         self.table_data.setFocusPolicy(QtCore.Qt.NoFocus)
         data_list = []
         try:
             for row in range(self.table_data.rowCount()):
-                data_list.append(self.table_data.item(row, 1).text().replace(',', '.'))
+                data_list.append(float(self.table_data.item(row, 1).text().replace(',', '.')))
         except:
             msg = QtWidgets.QMessageBox(self)
             msg.setIcon(QtWidgets.QMessageBox.Warning)
             msg.setWindowTitle("Информация")
-            msg.setText(f"Не все поля заполненны")
+            msg.setText(f"Не все поля заполненны или введены не числовые значения")
             msg.exec()
-            return
-
-        # Повека корректнос веденх значений
-        text = self.selected_method.text()
-        chek = [(float, float, float, float, float), (float, float, float), (int, int, float, float, float, float),
-                (float, float), (int, float, float, float), (float, float, float)]
-        ind = METHODS.index(text)
-
-        for i in data_list:
-            try:
-                chek[ind][data_list.index(i)](i)
-            except:
-                msg = QtWidgets.QMessageBox(self)
-                msg.setIcon(QtWidgets.QMessageBox.Warning)
-                msg.setWindowTitle("Информация")
-                msg.setText(f"Не верно указана характеристика: {i}")
-                msg.exec()
-                return
+            return []
         return data_list
+
+    def calculation(self):
+        print(self.get_data_in_table())
+        text = self.selected_method.text()
+        # TODO if text == 'Пожар пролива':
+
 
     def chek_server(self):
         try:

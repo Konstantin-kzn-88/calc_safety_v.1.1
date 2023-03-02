@@ -20,23 +20,29 @@ M3_TO_LITER = 1000  # м3 в литры
 
 class Instantaneous_source:
 
-    def __init__(self, ambient_temperature: int, cloud: int,
-                 wind_speed: int, density_air: float,
-                 is_night: bool, is_urban_area: bool):
+    def __init__(self, ambient_temperature: float, cloud: float,
+                 wind_speed: float, density_air: float,
+                 is_night: int, is_urban_area: int, ejection_height: float, gas_temperature: float, gas_weight: float):
         """
-        ambient_temperature - температура окружающего воздуха, град. С
-        cloud - облачность от 0 до 8, -
-        wind_speed - скорость ветра, м/с
-        density_air - плотность воздуха, кг/м3
-        is_night - ночное время суток, -
-        is_urban_area - городская застройка, -
+        :param ambient_temperature - температура окружающего воздуха, град. С
+        :param cloud - облачность от 0 до 8, -
+        :param wind_speed - скорость ветра, м/с
+        :param density_air - плотность воздуха, кг/м3
+        :param is_night - ночное время суток, -
+        :param is_urban_area - городская застройка, -
+        :param ejection_height - высота выброса, м
+        :param gas_temperature - температура газа, град.С
+        :param gas_weight - масса газа, кг
         """
         self.ambient_temperature = ambient_temperature + TEMP_TO_KELVIN
         self.cloud = cloud if cloud in [i for i in range(0, 9)] else 0
         self.wind_speed = wind_speed
         self.density_air = density_air
-        self.is_night = is_night
-        self.is_urban_area = is_urban_area
+        self.is_night = is_night if is_night in (0, 1) else 0
+        self.is_urban_area = is_urban_area if is_urban_area in (0, 1) else 0
+        self.ejection_height = ejection_height
+        self.gas_temperature = gas_temperature
+        self.gas_weight = gas_weight
 
     def pasquill_atmospheric_stability_classes(self) -> str:
         """
@@ -92,27 +98,24 @@ class Instantaneous_source:
         p = table_data[int(self.is_urban_area)][pasquill]
         return p
 
-    def wind_power_law(self, ejection_height: int) -> float:
+    def wind_power_law(self) -> float:
         """
         Зависимость закона силы ветра от высоты выброса
         (C5.1) p.223
-        :param ejection_height - высота выброса, м
         :return: : us: float: закон силы ветра от высоты выброса
         """
         p = self.wind_profile()
-        us = self.wind_speed * math.pow(ejection_height / WIND_HEIGHT, p)
+        us = self.wind_speed * math.pow(self.ejection_height / WIND_HEIGHT, p)
         return us
 
-    def source_buoyancy_flux_parameter(self, gas_temperature: int, gas_weight: int) -> float:
+    def source_buoyancy_flux_parameter(self) -> float:
         """
         Параметр плавучести
         (C5.33) p.243
-        :param gas_temperature - температура газа, град.С
-        :param gas_weight - масса газа, кг
         :return: : Fbi: float: параметр плавучести газа, м4/с2
         """
-        a = (GRAVITY * gas_weight) / (math.pi * self.density_air)
-        b = (gas_temperature + TEMP_TO_KELVIN - self.ambient_temperature) / self.ambient_temperature
+        a = (GRAVITY * self.gas_weight) / (math.pi * self.density_air)
+        b = (self.gas_temperature + TEMP_TO_KELVIN - self.ambient_temperature) / self.ambient_temperature
         Fbi = a * b
         return Fbi
 
@@ -316,8 +319,16 @@ class Instantaneous_source:
 
         :return: (dose): float: - токсодоза, мг*мин/л
         '''
-        dose = math.pow(concentration/M3_TO_LITER, n) * time
+        dose = math.pow(concentration / M3_TO_LITER, n) * time
         return dose
+
+    def result(self):
+        pasquill = self.pasquill_atmospheric_stability_classes()
+        p = cls.wind_profile()
+        us = cls.wind_power_law()
+        Fbi = cls.source_buoyancy_flux_parameter()
+        x_max = cls.maximum_distance_x(pasquill, us, Fbi)
+        print(x_max)
 
 
 class Continuous_source:
@@ -723,15 +734,17 @@ class Continuous_source:
 
         :return: (dose): float: - токсодоза, мг*мин/л
         '''
-        dose = math.pow(concentration/M3_TO_LITER, n) * time
+        dose = math.pow(concentration / M3_TO_LITER, n) * time
         return dose
 
 
 if __name__ == '__main__':
-    # #instantaneous_source
-    # cls = Instantaneous_source(ambient_temperature=25, cloud=0,
-    #                            wind_speed=4, density_air=1.21,
-    #                            is_night=False, is_urban_area=False)
+    # instantaneous_source
+    cls = Instantaneous_source(ambient_temperature=25, cloud=0,
+                               wind_speed=4, density_air=1.21,
+                               is_night=False, is_urban_area=False, ejection_height=2,
+                               gas_temperature = 147, gas_weight=500)
+    cls.result()
     # pasquill = (cls.pasquill_atmospheric_stability_classes())
     # p = (cls.wind_profile())
     # us = (cls.wind_power_law(ejection_height=2))
@@ -755,16 +768,16 @@ if __name__ == '__main__':
     # print(cls.concentration(500, u_mean, he_r, t_peak, x, 0, 2))
 
     # Continuous
-    cls = Continuous_source(ambient_temperature=7, cloud=5,
-                            wind_speed=2, density_air=1.21,
-                            is_night=True, is_urban_area=False)
-
-    pasquill = (cls.pasquill_atmospheric_stability_classes())
-    us = (cls.wind_power_law(25))
-    hs_with_steak = cls.height_source_correction(us, 4, 1, 25)
-    dt = cls.selecting_plume_rise(pasquill, 4, 127, 1)
-    x_max = cls.maximum_distance_x(pasquill, 4, 127, 1, dt, us)
-    he_1 = (cls.gradual_puff_rise(pasquill, 4, 127, 1, dt, us, hs_with_steak, 50))
-    he_2 = (cls.final_puff_rise(pasquill, 4, 127, 1, dt, us, hs_with_steak))
-
-    print(cls.concentration(0.02, us, he_2, 60000, 0, 2))
+    # cls = Continuous_source(ambient_temperature=7, cloud=5,
+    #                         wind_speed=2, density_air=1.21,
+    #                         is_night=True, is_urban_area=False)
+    #
+    # pasquill = (cls.pasquill_atmospheric_stability_classes())
+    # us = (cls.wind_power_law(25))
+    # hs_with_steak = cls.height_source_correction(us, 4, 1, 25)
+    # dt = cls.selecting_plume_rise(pasquill, 4, 127, 1)
+    # x_max = cls.maximum_distance_x(pasquill, 4, 127, 1, dt, us)
+    # he_1 = (cls.gradual_puff_rise(pasquill, 4, 127, 1, dt, us, hs_with_steak, 50))
+    # he_2 = (cls.final_puff_rise(pasquill, 4, 127, 1, dt, us, hs_with_steak))
+    #
+    # print(cls.concentration(0.02, us, he_2, 60000, 0, 2))

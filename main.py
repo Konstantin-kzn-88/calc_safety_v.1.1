@@ -15,6 +15,8 @@ from PySide6 import QtWidgets, QtGui, QtCore
 import pyqtgraph as pg
 import pyqtgraph.exporters as pg_exp
 
+from calc import calc_strait_fire
+
 METODS_AND_PARAMETRS = {
     'Пожар пролива': ('Площадь, м2', 'm, кг/(с*м2) ', 'Mmol, кг/кмоль', 'Ткип, град.С', 'Ветер, м/с')}
 
@@ -171,7 +173,7 @@ class Calc_gui(QtWidgets.QMainWindow):
 
         for row in range(rows):
             self.table_data.insertRow(row)
-            COLUMN = 0 # наименование параметров только в первой колонке
+            COLUMN = 0  # наименование параметров только в первой колонке
             item = QtWidgets.QTableWidgetItem(name[row])
             item.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)
             self.table_data.setItem(row, COLUMN, item)
@@ -197,145 +199,52 @@ class Calc_gui(QtWidgets.QMainWindow):
         return data_list
 
     def calculation(self):
-        print(self.get_data_in_table())
+        data = self.get_data_in_table()
         text = self.selected_method.text()
-        # TODO if text == 'Пожар пролива':
+        if text == 'Пожар пролива':
+            radius = calc_strait_fire.Strait_fire().termal_class_zone(*data)
+            self.result_text.setPlainText(self.report(text, radius))
+            result_tuple = calc_strait_fire.Strait_fire().termal_radiation_array(*data)
+            self.create_chart(text, result_tuple)
 
 
-    def chek_server(self):
-        try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect((IP, 8888))
-            sock.close()
-            return True
-        except:
-            msg = QtWidgets.QMessageBox(self)
-            msg.setIcon(QtWidgets.QMessageBox.Warning)
-            msg.setWindowTitle("Информация")
-            msg.setText(f"Нет подключения к серверу!")
-            msg.exec()
-            return False
-
-    def recvall(self, sock):
-        BUFF_SIZE = 256  # 4 KiB
-        data = b''
-        while True:
-            part = sock.recv(BUFF_SIZE)
-            data += part
-            if len(part) == 0:
-                break
-        return data
-
-    def get_zone_in_server(self, data: list):
-        text = self.selected_method.text()
-        ind = METHODS.index(text)
-        server_call = (2, 5, 8, 11, 12, 13)
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((IP, 8888))
-        str = f'({server_call[ind]}, {data})'
-        sock.send(bytes(str, encoding='utf-8'))
-        res = self.recvall(sock)
-        sock.close()
-        return res
-
-    def get_data_for_chart_in_server(self, data: list):
-        text = self.selected_method.text()
-        ind = METHODS.index(text)
-        if ind == 0:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect((IP, 8888))
-            str = f'(1, {data})'
-            sock.send(bytes(str, encoding='utf-8'))
-            res = self.recvall(sock)
-            sock.close()
-            return res
-        elif ind == 1:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect((IP, 8888))
-            str = f'(4, {data})'
-            sock.send(bytes(str, encoding='utf-8'))
-            res = self.recvall(sock)
-            sock.close()
-            return res
-
-        elif ind == 2:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect((IP, 8888))
-            str = f'(7, {data})'
-            sock.send(bytes(str, encoding='utf-8'))
-            res = self.recvall(sock)
-            sock.close()
-            return res
-
-        elif ind == 3:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect((IP, 8888))
-            str = f'(10, {data})'
-            sock.send(bytes(str, encoding='utf-8'))
-            res = self.recvall(sock)
-            sock.close()
-            return res
-
-        elif ind == 5:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect((IP, 8888))
-            str = f'(14, {data})'
-            sock.send(bytes(str, encoding='utf-8'))
-            res = self.recvall(sock)
-            sock.close()
-            return res
-
-    def report(self, data: list):
-        text = self.selected_method.text()
-        ind = METHODS.index(text)
-
-        if ind == 0:
+    def report(self, text: str, data: list):
+        if text == 'Пожар пролива':
             return (f'Зона 10.5 кВт/м2 = {data[0]} м \n'
                     f'Зона 7.0 кВт/м2 = {data[1]} м \n'
                     f'Зона 4.2 кВт/м2 = {data[2]} м \n'
                     f'Зона 1.4 кВт/м2 = {data[3]} м \n')
 
-        elif ind == 1:
-            return (f'Зона 100 кПа = {data[0]} м \n'
-                    f'Зона 53 кПа = {data[1]} м \n'
-                    f'Зона 28 кПа = {data[2]} м \n'
-                    f'Зона 12 кПа = {data[3]} м \n'
-                    f'Зона 5 кПа = {data[4]} м \n'
-                    f'Зона 3 кПа = {data[5]} м \n')
+        # elif ind == 1:
+        #     return (f'Зона 100 кПа = {data[0]} м \n'
+        #             f'Зона 53 кПа = {data[1]} м \n'
+        #             f'Зона 28 кПа = {data[2]} м \n'
+        #             f'Зона 12 кПа = {data[3]} м \n'
+        #             f'Зона 5 кПа = {data[4]} м \n'
+        #             f'Зона 3 кПа = {data[5]} м \n')
+        #
+        # elif ind == 2:
+        #     return (f'Зона 100 кПа = {data[0]} м \n'
+        #             f'Зона 53 кПа = {data[1]} м \n'
+        #             f'Зона 28 кПа = {data[2]} м \n'
+        #             f'Зона 12 кПа = {data[3]} м \n'
+        #             f'Зона 5 кПа = {data[4]} м \n'
+        #             f'Зона 3 кПа = {data[5]} м \n')
+        #
+        # elif ind == 3:
+        #     return (f'Зона 600 кДж/м2 = {data[0]} м \n'
+        #             f'Зона 320 кДж/м2 = {data[1]} м \n'
+        #             f'Зона 220 кДж/м2 = {data[2]} м \n'
+        #             f'Зона 120 кДж/м2 = {data[3]} м \n')
+        #
+        # elif ind == 4:
+        #     return (f'Зона НКПР = {data[0]} м \n'
+        #             f'Зона Вспышки = {data[1]} м \n')
+        # elif ind == 5:
+        #     return (f'Испарение за 3600 секунд составит {round(data[0], 1)} кг')
 
-        elif ind == 2:
-            return (f'Зона 100 кПа = {data[0]} м \n'
-                    f'Зона 53 кПа = {data[1]} м \n'
-                    f'Зона 28 кПа = {data[2]} м \n'
-                    f'Зона 12 кПа = {data[3]} м \n'
-                    f'Зона 5 кПа = {data[4]} м \n'
-                    f'Зона 3 кПа = {data[5]} м \n')
 
-        elif ind == 3:
-            return (f'Зона 600 кДж/м2 = {data[0]} м \n'
-                    f'Зона 320 кДж/м2 = {data[1]} м \n'
-                    f'Зона 220 кДж/м2 = {data[2]} м \n'
-                    f'Зона 120 кДж/м2 = {data[3]} м \n')
-
-        elif ind == 4:
-            return (f'Зона НКПР = {data[0]} м \n'
-                    f'Зона Вспышки = {data[1]} м \n')
-        elif ind == 5:
-            return (f'Испарение за 3600 секунд составит {round(data[0], 1)} кг')
-
-    def calculate(self):
-        data_list = self.get_data_in_table()
-        if data_list == None:
-            return
-
-        zone = self.get_zone_in_server(data_list)
-        for_chart = self.get_data_for_chart_in_server(data_list)
-        self.result_text.setPlainText(self.report(eval(zone)))
-        self.create_chart(for_chart)
-
-    def create_chart(self, data: bytes):
-        text = self.selected_method.text()
-        ind = METHODS.index(text)
+    def create_chart(self, text:str, data: tuple):
 
         self.chart_layout.clear()
         pen1 = pg.mkPen(color=(255, 0, 0), width=3, style=QtCore.Qt.SolidLine)
@@ -344,16 +253,13 @@ class Calc_gui(QtWidgets.QMainWindow):
         pen4 = pg.mkPen(color=(0, 255, 255), width=3, style=QtCore.Qt.SolidLine)
         styles = {'color': 'b', 'font-size': '15px'}
 
-        if not ind == 4:
-            data = eval(data)
-        else:
-            return
+        # if not ind == 4:
+        #     data = eval(data)
+        # else:
+        #     return
 
-        if ind == 0:
-            radius = [float(i) for i in data[0]]
-            q = [float(i) for i in data[1]]
-            pr = [float(i) for i in data[2]]
-            vp = [float(i) for i in data[3]]
+        if text == 'Пожар пролива':
+            radius, q, pr, vp = data
 
             qraph1 = self.chart_layout.addPlot(x=radius, y=q, pen=pen1, row=0, col=0)
             qraph1.setLabel('left', 'Интенсивность, кВт/м2', **styles)
@@ -370,95 +276,95 @@ class Calc_gui(QtWidgets.QMainWindow):
             qraph3.setLabel('bottom', 'Расстояние от центра пролива, м2', **styles)
             qraph3.showGrid(x=True, y=True)
 
-        if ind == 1:
-            radius = [float(i) for i in data[0]]
-            pressure = [float(i) for i in data[1]]
-            impuls = [float(i) for i in data[2]]
-            pr = [float(i) for i in data[3]]
-            vp = [float(i) for i in data[4]]
-
-            qraph1 = self.chart_layout.addPlot(x=radius, y=pressure, pen=pen1, row=0, col=0)
-            qraph1.setLabel('left', 'Давление, кПа', **styles)
-            qraph1.setLabel('bottom', 'Расстояние, м2', **styles)
-            qraph1.showGrid(x=True, y=True)
-
-            qraph2 = self.chart_layout.addPlot(x=radius, y=impuls, pen=pen2, row=1, col=0)
-            qraph2.setLabel('left', 'Импульс, Па*с', **styles)
-            qraph2.setLabel('bottom', 'Расстояние, м2', **styles)
-            qraph2.showGrid(x=True, y=True)
-
-            qraph3 = self.chart_layout.addPlot(x=radius, y=pr, pen=pen3, row=2, col=0)
-            qraph3.setLabel('left', 'Пробит-функция, -', **styles)
-            qraph3.setLabel('bottom', 'Расстояние, м2', **styles)
-            qraph3.showGrid(x=True, y=True)
-
-            qraph4 = self.chart_layout.addPlot(x=radius, y=vp, pen=pen4, row=3, col=0)
-            qraph4.setLabel('left', 'Вероятность поражения, -', **styles)
-            qraph4.setLabel('bottom', 'Расстояние, м2', **styles)
-            qraph4.showGrid(x=True, y=True)
-
-        if ind == 2:
-            radius = [float(i) for i in data[0]]
-            pressure = [float(i) for i in data[1]]
-            impuls = [float(i) for i in data[2]]
-            pr = [float(i) for i in data[3]]
-            vp = [float(i) for i in data[4]]
-
-            qraph1 = self.chart_layout.addPlot(x=radius, y=pressure, pen=pen1, row=0, col=0)
-            qraph1.setLabel('left', 'Давление, кПа', **styles)
-            qraph1.setLabel('bottom', 'Расстояние, м2', **styles)
-            qraph1.showGrid(x=True, y=True)
-
-            qraph2 = self.chart_layout.addPlot(x=radius, y=impuls, pen=pen2, row=1, col=0)
-            qraph2.setLabel('left', 'Импульс, Па*с', **styles)
-            qraph2.setLabel('bottom', 'Расстояние, м2', **styles)
-            qraph2.showGrid(x=True, y=True)
-
-            qraph3 = self.chart_layout.addPlot(x=radius, y=pr, pen=pen3, row=2, col=0)
-            qraph3.setLabel('left', 'Пробит-функция, -', **styles)
-            qraph3.setLabel('bottom', 'Расстояние, м2', **styles)
-            qraph3.showGrid(x=True, y=True)
-
-            qraph4 = self.chart_layout.addPlot(x=radius, y=vp, pen=pen4, row=3, col=0)
-            qraph4.setLabel('left', 'Вероятность поражения, -', **styles)
-            qraph4.setLabel('bottom', 'Расстояние, м2', **styles)
-            qraph4.showGrid(x=True, y=True)
-
-        if ind == 3:
-            radius = [float(i) for i in data[0]]
-            q = [float(i) for i in data[1]]
-            dose = [float(i) for i in data[2]]
-            pr = [float(i) for i in data[3]]
-            vp = [float(i) for i in data[4]]
-
-            qraph1 = self.chart_layout.addPlot(x=radius, y=q, pen=pen1, row=0, col=0)
-            qraph1.setLabel('left', 'Интенсивность, кВт/м2', **styles)
-            qraph1.setLabel('bottom', 'Расстояние, м2', **styles)
-            qraph1.showGrid(x=True, y=True)
-
-            qraph2 = self.chart_layout.addPlot(x=radius, y=dose, pen=pen2, row=1, col=0)
-            qraph2.setLabel('left', 'Доза, кДж/м2', **styles)
-            qraph2.setLabel('bottom', 'Расстояние, м2', **styles)
-            qraph2.showGrid(x=True, y=True)
-
-            qraph3 = self.chart_layout.addPlot(x=radius, y=pr, pen=pen3, row=2, col=0)
-            qraph3.setLabel('left', 'Пробит-функция, -', **styles)
-            qraph3.setLabel('bottom', 'Расстояние, м2', **styles)
-            qraph3.showGrid(x=True, y=True)
-
-            qraph4 = self.chart_layout.addPlot(x=radius, y=vp, pen=pen4, row=3, col=0)
-            qraph4.setLabel('left', 'Вероятность поражения, -', **styles)
-            qraph4.setLabel('bottom', 'Расстояние, м2', **styles)
-            qraph4.showGrid(x=True, y=True)
-
-        if ind == 5:
-            time = [float(i) for i in data[0]]
-            mass = [float(i) for i in data[1]]
-
-            qraph1 = self.chart_layout.addPlot(x=time, y=mass, pen=pen1, row=0, col=0)
-            qraph1.setLabel('left', 'Масса, кг', **styles)
-            qraph1.setLabel('bottom', 'Время, с', **styles)
-            qraph1.showGrid(x=True, y=True)
+        # if ind == 1:
+        #     radius = [float(i) for i in data[0]]
+        #     pressure = [float(i) for i in data[1]]
+        #     impuls = [float(i) for i in data[2]]
+        #     pr = [float(i) for i in data[3]]
+        #     vp = [float(i) for i in data[4]]
+        #
+        #     qraph1 = self.chart_layout.addPlot(x=radius, y=pressure, pen=pen1, row=0, col=0)
+        #     qraph1.setLabel('left', 'Давление, кПа', **styles)
+        #     qraph1.setLabel('bottom', 'Расстояние, м2', **styles)
+        #     qraph1.showGrid(x=True, y=True)
+        #
+        #     qraph2 = self.chart_layout.addPlot(x=radius, y=impuls, pen=pen2, row=1, col=0)
+        #     qraph2.setLabel('left', 'Импульс, Па*с', **styles)
+        #     qraph2.setLabel('bottom', 'Расстояние, м2', **styles)
+        #     qraph2.showGrid(x=True, y=True)
+        #
+        #     qraph3 = self.chart_layout.addPlot(x=radius, y=pr, pen=pen3, row=2, col=0)
+        #     qraph3.setLabel('left', 'Пробит-функция, -', **styles)
+        #     qraph3.setLabel('bottom', 'Расстояние, м2', **styles)
+        #     qraph3.showGrid(x=True, y=True)
+        #
+        #     qraph4 = self.chart_layout.addPlot(x=radius, y=vp, pen=pen4, row=3, col=0)
+        #     qraph4.setLabel('left', 'Вероятность поражения, -', **styles)
+        #     qraph4.setLabel('bottom', 'Расстояние, м2', **styles)
+        #     qraph4.showGrid(x=True, y=True)
+        #
+        # if ind == 2:
+        #     radius = [float(i) for i in data[0]]
+        #     pressure = [float(i) for i in data[1]]
+        #     impuls = [float(i) for i in data[2]]
+        #     pr = [float(i) for i in data[3]]
+        #     vp = [float(i) for i in data[4]]
+        #
+        #     qraph1 = self.chart_layout.addPlot(x=radius, y=pressure, pen=pen1, row=0, col=0)
+        #     qraph1.setLabel('left', 'Давление, кПа', **styles)
+        #     qraph1.setLabel('bottom', 'Расстояние, м2', **styles)
+        #     qraph1.showGrid(x=True, y=True)
+        #
+        #     qraph2 = self.chart_layout.addPlot(x=radius, y=impuls, pen=pen2, row=1, col=0)
+        #     qraph2.setLabel('left', 'Импульс, Па*с', **styles)
+        #     qraph2.setLabel('bottom', 'Расстояние, м2', **styles)
+        #     qraph2.showGrid(x=True, y=True)
+        #
+        #     qraph3 = self.chart_layout.addPlot(x=radius, y=pr, pen=pen3, row=2, col=0)
+        #     qraph3.setLabel('left', 'Пробит-функция, -', **styles)
+        #     qraph3.setLabel('bottom', 'Расстояние, м2', **styles)
+        #     qraph3.showGrid(x=True, y=True)
+        #
+        #     qraph4 = self.chart_layout.addPlot(x=radius, y=vp, pen=pen4, row=3, col=0)
+        #     qraph4.setLabel('left', 'Вероятность поражения, -', **styles)
+        #     qraph4.setLabel('bottom', 'Расстояние, м2', **styles)
+        #     qraph4.showGrid(x=True, y=True)
+        #
+        # if ind == 3:
+        #     radius = [float(i) for i in data[0]]
+        #     q = [float(i) for i in data[1]]
+        #     dose = [float(i) for i in data[2]]
+        #     pr = [float(i) for i in data[3]]
+        #     vp = [float(i) for i in data[4]]
+        #
+        #     qraph1 = self.chart_layout.addPlot(x=radius, y=q, pen=pen1, row=0, col=0)
+        #     qraph1.setLabel('left', 'Интенсивность, кВт/м2', **styles)
+        #     qraph1.setLabel('bottom', 'Расстояние, м2', **styles)
+        #     qraph1.showGrid(x=True, y=True)
+        #
+        #     qraph2 = self.chart_layout.addPlot(x=radius, y=dose, pen=pen2, row=1, col=0)
+        #     qraph2.setLabel('left', 'Доза, кДж/м2', **styles)
+        #     qraph2.setLabel('bottom', 'Расстояние, м2', **styles)
+        #     qraph2.showGrid(x=True, y=True)
+        #
+        #     qraph3 = self.chart_layout.addPlot(x=radius, y=pr, pen=pen3, row=2, col=0)
+        #     qraph3.setLabel('left', 'Пробит-функция, -', **styles)
+        #     qraph3.setLabel('bottom', 'Расстояние, м2', **styles)
+        #     qraph3.showGrid(x=True, y=True)
+        #
+        #     qraph4 = self.chart_layout.addPlot(x=radius, y=vp, pen=pen4, row=3, col=0)
+        #     qraph4.setLabel('left', 'Вероятность поражения, -', **styles)
+        #     qraph4.setLabel('bottom', 'Расстояние, м2', **styles)
+        #     qraph4.showGrid(x=True, y=True)
+        #
+        # if ind == 5:
+        #     time = [float(i) for i in data[0]]
+        #     mass = [float(i) for i in data[1]]
+        #
+        #     qraph1 = self.chart_layout.addPlot(x=time, y=mass, pen=pen1, row=0, col=0)
+        #     qraph1.setLabel('left', 'Масса, кг', **styles)
+        #     qraph1.setLabel('bottom', 'Время, с', **styles)
+        #     qraph1.showGrid(x=True, y=True)
 
     def save_chart(self):
         exporter = pg_exp.ImageExporter(self.chart_layout.scene())

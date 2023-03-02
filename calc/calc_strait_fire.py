@@ -34,7 +34,7 @@ class Strait_fire:
         :@raise проверка функции на введенные нулевые значения
         """
         # Проверки
-        if 0 in (S_spill, m_sg, mol_mass, t_boiling, wind_velocity, radius):
+        if 0 in (S_spill, m_sg, mol_mass, wind_velocity, radius):
             raise ValueError(f'Фукнция не может принимать нулевые параметры')
 
         # Вычислим эффективный диаметр

@@ -127,7 +127,7 @@ class Explosion:
             probit = round(Probit().probit_explosion(delta_p, impulse), 3)
             probability = round(Probit().probability(probit), 3)
             # append
-            radius_arr.append(float(radius))
+            radius_arr.append(int(radius))
             delta_p_arr.append(delta_p)
             impulse_arr.append(impulse)
             probit_arr.append(probit)
@@ -168,7 +168,7 @@ class Explosion:
                 radius_CZA.append(0)
             else:
                 ind = delta_p_array.index(get_nearest_value(delta_p_array, CZA))
-                radius_CZA.append(round(radius_array[ind],1))
+                radius_CZA.append(radius_array[ind])
         return radius_CZA
 
 
@@ -181,6 +181,6 @@ if __name__ == '__main__':
     sigma = 7
     energy_level = 2
 
-    print(ev_class.explosion_array(class_substance, view_space,
+    print(ev_class.explosion_class_zone(class_substance, view_space,
                                         mass, heat_of_combustion, sigma,
                                         energy_level))

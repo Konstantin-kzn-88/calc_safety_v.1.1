@@ -28,10 +28,10 @@ METODS_AND_PARAMETRS = {
     'Огненный шар': ('Масса, кг', 'Ef, кВт/м2'),
     'Взрыв (СП 12.13130-2009)': ('Масса, кг', 'Qсг, кДж/кг ', 'z, -'),
     'Взрыв (Методика ТВС)': ('Класс в-ва', 'Класс прост-ва', 'Масса, кг', 'Qсг, кДж/кг', 'sigma, -', 'Энергозапас, -'),
-    'Легкий газ (перв.облако)': (
-        'Тем-ра воздуха, град. С', 'Облачность (0-8)', 'Cкорость ветра, м/с', 'Плотность воздуха, кг/м3', 'Ночь (0/1)',
-        'Городская застройка (0/1)', 'Высота выброса, м', 'Тем-ра газа, град. С', 'Масса газа, кг'),
-    'Легкий газ (втр.облако)': ()}
+    'Легкий газ': (
+        'Тем-ра воздуха, град. С', 'Облачность (0-8)', 'Cкорость ветра, м/с', 'Ночь (0/1)',
+        'Городская застройка (0/1)', 'Высота выброса, м', 'Тем-ра газа, град. С', 'Масса газа, кг',
+        'Расход газа, кг/с', 'Время отсечения, с', 'Молекулярная масса, кг/кмоль')}
 
 
 # ,  'Испарение ненагретой жидкости'
@@ -111,8 +111,7 @@ class Calc_gui(QtWidgets.QMainWindow):
         expl_menu.addAction(book_ico, 'Взрыв (Методика ТВС)', self.change_method)
         # 3. Токсическое поражение
         toxic_menu = method_menu.addMenu(select_ico, 'Токсическое поражение')
-        toxic_menu.addAction(book_ico, 'Легкий газ (первичное облако)', self.change_method)
-        toxic_menu.addAction(book_ico, 'Легкий газ (вторичное облако)', self.change_method)
+        toxic_menu.addAction(book_ico, 'Легкий газ', self.change_method)
         toxic_menu.addAction(book_ico, 'Тяжелый газ (первичное облако)', self.change_method)
         toxic_menu.addAction(book_ico, 'Тяжелый газ (вторичное облако)', self.change_method)
         # 4. Количество опасного вещества
@@ -242,6 +241,11 @@ class Calc_gui(QtWidgets.QMainWindow):
             result_tuple = calc_tvs_explosion.Explosion().explosion_array(*data)
             self.create_chart(text, result_tuple)
 
+        elif text == 'Легкий газ':
+            data = calc_light_gas_disp.Source(*data).result()
+            self.result_text.setPlainText(self.report(text, []))
+            self.create_chart(text, data)
+
     def report(self, text: str, data: list):
         """
         Функция оформления отчета по зонам действия поражающих факторов
@@ -270,14 +274,10 @@ class Calc_gui(QtWidgets.QMainWindow):
                     f'Зона 12 кПа = {data[3]} м \n'
                     f'Зона 5 кПа = {data[4]} м \n'
                     f'Зона 3 кПа = {data[5]} м \n')
-        #
-        # elif ind == 2:
-        #     return (f'Зона 100 кПа = {data[0]} м \n'
-        #             f'Зона 53 кПа = {data[1]} м \n'
-        #             f'Зона 28 кПа = {data[2]} м \n'
-        #             f'Зона 12 кПа = {data[3]} м \n'
-        #             f'Зона 5 кПа = {data[4]} м \n'
-        #             f'Зона 3 кПа = {data[5]} м \n')
+
+        elif text == 'Легкий газ':
+            return (f'Расчет по модели "легкого газа" \n'
+                    f'Методика "ТОКСИ-2 (ред.2)"')
         #
         # elif ind == 3:
         #     return (f'Зона 600 кДж/м2 = {data[0]} м \n'
@@ -305,11 +305,6 @@ class Calc_gui(QtWidgets.QMainWindow):
         pen3 = pg.mkPen(color=(0, 255, 0), width=3, style=QtCore.Qt.SolidLine)
         pen4 = pg.mkPen(color=(0, 255, 255), width=3, style=QtCore.Qt.SolidLine)
         styles = {'color': 'b', 'font-size': '15px'}
-
-        # if not ind == 4:
-        #     data = eval(data)
-        # else:
-        #     return
 
         if text == 'Пожар пролива':
             radius, q, pr, vp = data
@@ -374,7 +369,22 @@ class Calc_gui(QtWidgets.QMainWindow):
             qraph4.setLabel('left', 'Вероятность поражения, -', **styles)
             qraph4.setLabel('bottom', 'Расстояние, м2', **styles)
             qraph4.showGrid(x=True, y=True)
-        #
+
+        if text == 'Легкий газ':
+            dist, conc, toxic_dose = data
+            print(data)
+
+            qraph1 = self.chart_layout.addPlot(x=dist, y=conc, pen=pen1, row=0, col=0)
+            qraph1.setLabel('left', 'Концентрация, кг/м3', **styles)
+            qraph1.setLabel('bottom', 'Расстояние, м2', **styles)
+            qraph1.showGrid(x=True, y=True)
+
+            qraph2 = self.chart_layout.addPlot(x=dist, y=toxic_dose, pen=pen2, row=1, col=0)
+            qraph2.setLabel('left', 'Токсодоза, мг*мин/литр', **styles)
+            qraph2.setLabel('bottom', 'Расстояние, м2', **styles)
+            qraph2.showGrid(x=True, y=True)
+
+
         # if ind == 2:
         #     radius = [float(i) for i in data[0]]
         #     pressure = [float(i) for i in data[1]]

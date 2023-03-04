@@ -211,6 +211,8 @@ class Calc_gui(QtWidgets.QMainWindow):
         Функция расчета и отрисовки графиков с зависимостями поражающих факторов
         """
         data = self.get_data_in_table()
+        if data == []: return
+
         text = self.selected_method.text()
 
         if text == 'Пожар пролива':
@@ -372,7 +374,6 @@ class Calc_gui(QtWidgets.QMainWindow):
 
         if text == 'Легкий газ':
             dist, conc, toxic_dose = data
-            print(data)
 
             qraph1 = self.chart_layout.addPlot(x=dist, y=conc, pen=pen1, row=0, col=0)
             qraph1.setLabel('left', 'Концентрация, кг/м3', **styles)
@@ -383,7 +384,6 @@ class Calc_gui(QtWidgets.QMainWindow):
             qraph2.setLabel('left', 'Токсодоза, мг*мин/литр', **styles)
             qraph2.setLabel('bottom', 'Расстояние, м2', **styles)
             qraph2.showGrid(x=True, y=True)
-
 
         # if ind == 2:
         #     radius = [float(i) for i in data[0]]

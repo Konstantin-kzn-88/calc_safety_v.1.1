@@ -52,17 +52,6 @@ class Source:
         self.pasquill = self.pasquill_atmospheric_stability_classes()
         self.radius_first_cloud = math.pow((3 / (4 * math.pi)) * (self.gas_weight / self.gas_density), 1 / 3)
 
-        print(self.ambient_temperature,
-              self.cloud,
-              self.wind_speed,
-              self.is_night,
-              self.is_urban_area,
-              self.ejection_height,
-              self.gas_temperature,
-              self.gas_weight,
-              self.gas_flow,
-              self.closing_time,
-              self.molecular_weight)
 
     def pasquill_atmospheric_stability_classes(self) -> str:
         """
@@ -157,8 +146,10 @@ class Source:
         c_1, c_2, d_1, d_2 = self.roughness_coefficients()
         sigma_x = (c_3 * x_dist) / math.sqrt(1 + 0.000 * x_dist)
 
-        sigma_y = sigma_x if x_dist / self.wind_speed < 600 else (220.2 * 60 + x_dist / self.wind_speed) / (
-                220.2 * 60 + 600)
+        sigma_y = sigma_x
+        #
+        # sigma_y = sigma_x if x_dist / self.wind_speed < 600 else (220.2 * 60 + x_dist / self.wind_speed) / (
+        #         220.2 * 60 + 600)
 
         g_x = (a_1 * math.pow(x_dist, b_1)) / (1 + a_2 * math.pow(x_dist, b_2))
 
@@ -199,7 +190,6 @@ class Source:
         '''
         concentration = self.concentration(x_dist)
         dose = ((2 * math.pow(2 * math.pi, 2)) / self.wind_speed) * concentration
-        # 16.67 перевод
         return dose
 
     def result(self):
@@ -207,14 +197,14 @@ class Source:
         conc = []
         dose = []
 
-        for radius in range(1, 1000):
+        for radius in range(1, 10000):
             c = self.concentration(x_dist=radius)
             d = self.toxic_dose(x_dist=radius)
             dist.append(radius)
             conc.append(c)
             dose.append(d)
-            # if radius < 100: break
-            # if d < 1: break
+            if radius < 100: continue
+            if d < 0.1: break
 
         return (dist, conc, dose)
 
@@ -229,5 +219,5 @@ if __name__ == '__main__':
                  gas_temperature=60, gas_weight=1000, gas_flow=100, closing_time=10,
                  molecular_weight=17)
     print(cls.concentration(600))
-    print(cls.toxic_dose(600))
+    print(cls.toxic_dose(599))
     print(cls.result())

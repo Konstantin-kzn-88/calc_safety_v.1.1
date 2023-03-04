@@ -21,6 +21,7 @@ from calc import calc_fireball
 from calc import calc_sp_explosion
 from calc import calc_tvs_explosion
 from calc import calc_light_gas_disp
+from calc import calc_heavy_gas_disp
 
 METODS_AND_PARAMETRS = {
     'Пожар пролива': ('Площадь, м2', 'm, кг/(с*м2) ', 'Mmol, кг/кмоль', 'Ткип, град.С', 'Ветер, м/с'),
@@ -31,7 +32,12 @@ METODS_AND_PARAMETRS = {
     'Легкий газ': (
         'Тем-ра воздуха, град. С', 'Облачность (0-8)', 'Cкорость ветра, м/с', 'Ночь (0/1)',
         'Городская застройка (0/1)', 'Высота выброса, м', 'Тем-ра газа, град. С', 'Масса газа, кг',
-        'Расход газа, кг/с', 'Время отсечения, с', 'Молекулярная масса, кг/кмоль')}
+        'Расход газа, кг/с', 'Время отсечения, с', 'Молекулярная масса, кг/кмоль'),
+    'Тяжелый газ (перв.облако)': (
+        'Скорость ветра, м/с', 'Плотность воздуха, кг/м3', 'Плотность газа, кг/м3', 'Объем газа, м3'),
+    'Тяжелый газ (втор.облако)': (
+    'Скорость ветра, м/с', 'Плотность воздуха, кг/м3', 'Плотность газа, кг/м3', 'Расход газа, кг/с', 'Радиус выброса, м')
+}
 
 
 # ,  'Испарение ненагретой жидкости'
@@ -112,8 +118,8 @@ class Calc_gui(QtWidgets.QMainWindow):
         # 3. Токсическое поражение
         toxic_menu = method_menu.addMenu(select_ico, 'Токсическое поражение')
         toxic_menu.addAction(book_ico, 'Легкий газ', self.change_method)
-        toxic_menu.addAction(book_ico, 'Тяжелый газ (первичное облако)', self.change_method)
-        toxic_menu.addAction(book_ico, 'Тяжелый газ (вторичное облако)', self.change_method)
+        toxic_menu.addAction(book_ico, 'Тяжелый газ (перв.облако)', self.change_method)
+        toxic_menu.addAction(book_ico, 'Тяжелый газ (втор.облако)', self.change_method)
         # 4. Количество опасного вещества
         mass_menu = method_menu.addMenu(select_ico, 'Оценка количества опасного вещества')
         mass_menu.addAction(book_ico, 'Истечение газа (емкость)', self.change_method)
@@ -248,6 +254,16 @@ class Calc_gui(QtWidgets.QMainWindow):
             self.result_text.setPlainText(self.report(text, []))
             self.create_chart(text, data)
 
+        elif text == 'Тяжелый газ (перв.облако)':
+            data = calc_heavy_gas_disp.Instantaneous_source(*data).result()
+            self.result_text.setPlainText(self.report(text, []))
+            self.create_chart(text, data)
+
+        elif text == 'Тяжелый газ (втор.облако)':
+            data = calc_heavy_gas_disp.Continuous_source(*data).result()
+            self.result_text.setPlainText(self.report(text, []))
+            self.create_chart(text, data)
+
     def report(self, text: str, data: list):
         """
         Функция оформления отчета по зонам действия поражающих факторов
@@ -280,18 +296,10 @@ class Calc_gui(QtWidgets.QMainWindow):
         elif text == 'Легкий газ':
             return (f'Расчет по модели "легкого газа" \n'
                     f'Методика "ТОКСИ-2 (ред.2)"')
-        #
-        # elif ind == 3:
-        #     return (f'Зона 600 кДж/м2 = {data[0]} м \n'
-        #             f'Зона 320 кДж/м2 = {data[1]} м \n'
-        #             f'Зона 220 кДж/м2 = {data[2]} м \n'
-        #             f'Зона 120 кДж/м2 = {data[3]} м \n')
-        #
-        # elif ind == 4:
-        #     return (f'Зона НКПР = {data[0]} м \n'
-        #             f'Зона Вспышки = {data[1]} м \n')
-        # elif ind == 5:
-        #     return (f'Испарение за 3600 секунд составит {round(data[0], 1)} кг')
+
+        elif text == 'Тяжелый газ (перв.облако)' or text == 'Тяжелый газ (втор.облако)':
+            return (f'Расчет по модели "тяжелого газа" \n'
+                    f'Авторы Britter and McQuaid')
 
     def create_chart(self, text: str, data: tuple):
         """
@@ -385,68 +393,42 @@ class Calc_gui(QtWidgets.QMainWindow):
             qraph2.setLabel('bottom', 'Расстояние, м2', **styles)
             qraph2.showGrid(x=True, y=True)
 
-        # if ind == 2:
-        #     radius = [float(i) for i in data[0]]
-        #     pressure = [float(i) for i in data[1]]
-        #     impuls = [float(i) for i in data[2]]
-        #     pr = [float(i) for i in data[3]]
-        #     vp = [float(i) for i in data[4]]
-        #
-        #     qraph1 = self.chart_layout.addPlot(x=radius, y=pressure, pen=pen1, row=0, col=0)
-        #     qraph1.setLabel('left', 'Давление, кПа', **styles)
-        #     qraph1.setLabel('bottom', 'Расстояние, м2', **styles)
-        #     qraph1.showGrid(x=True, y=True)
-        #
-        #     qraph2 = self.chart_layout.addPlot(x=radius, y=impuls, pen=pen2, row=1, col=0)
-        #     qraph2.setLabel('left', 'Импульс, Па*с', **styles)
-        #     qraph2.setLabel('bottom', 'Расстояние, м2', **styles)
-        #     qraph2.showGrid(x=True, y=True)
-        #
-        #     qraph3 = self.chart_layout.addPlot(x=radius, y=pr, pen=pen3, row=2, col=0)
-        #     qraph3.setLabel('left', 'Пробит-функция, -', **styles)
-        #     qraph3.setLabel('bottom', 'Расстояние, м2', **styles)
-        #     qraph3.showGrid(x=True, y=True)
-        #
-        #     qraph4 = self.chart_layout.addPlot(x=radius, y=vp, pen=pen4, row=3, col=0)
-        #     qraph4.setLabel('left', 'Вероятность поражения, -', **styles)
-        #     qraph4.setLabel('bottom', 'Расстояние, м2', **styles)
-        #     qraph4.showGrid(x=True, y=True)
-        #
-        # if ind == 3:
-        #     radius = [float(i) for i in data[0]]
-        #     q = [float(i) for i in data[1]]
-        #     dose = [float(i) for i in data[2]]
-        #     pr = [float(i) for i in data[3]]
-        #     vp = [float(i) for i in data[4]]
-        #
-        #     qraph1 = self.chart_layout.addPlot(x=radius, y=q, pen=pen1, row=0, col=0)
-        #     qraph1.setLabel('left', 'Интенсивность, кВт/м2', **styles)
-        #     qraph1.setLabel('bottom', 'Расстояние, м2', **styles)
-        #     qraph1.showGrid(x=True, y=True)
-        #
-        #     qraph2 = self.chart_layout.addPlot(x=radius, y=dose, pen=pen2, row=1, col=0)
-        #     qraph2.setLabel('left', 'Доза, кДж/м2', **styles)
-        #     qraph2.setLabel('bottom', 'Расстояние, м2', **styles)
-        #     qraph2.showGrid(x=True, y=True)
-        #
-        #     qraph3 = self.chart_layout.addPlot(x=radius, y=pr, pen=pen3, row=2, col=0)
-        #     qraph3.setLabel('left', 'Пробит-функция, -', **styles)
-        #     qraph3.setLabel('bottom', 'Расстояние, м2', **styles)
-        #     qraph3.showGrid(x=True, y=True)
-        #
-        #     qraph4 = self.chart_layout.addPlot(x=radius, y=vp, pen=pen4, row=3, col=0)
-        #     qraph4.setLabel('left', 'Вероятность поражения, -', **styles)
-        #     qraph4.setLabel('bottom', 'Расстояние, м2', **styles)
-        #     qraph4.showGrid(x=True, y=True)
-        #
-        # if ind == 5:
-        #     time = [float(i) for i in data[0]]
-        #     mass = [float(i) for i in data[1]]
-        #
-        #     qraph1 = self.chart_layout.addPlot(x=time, y=mass, pen=pen1, row=0, col=0)
-        #     qraph1.setLabel('left', 'Масса, кг', **styles)
-        #     qraph1.setLabel('bottom', 'Время, с', **styles)
-        #     qraph1.showGrid(x=True, y=True)
+        if text == 'Тяжелый газ (перв.облако)':
+            dose, conc, radius, width, _ = data
+
+            qraph1 = self.chart_layout.addPlot(x=radius, y=conc, pen=pen1, row=0, col=0)
+            qraph1.setLabel('left', 'Концентрация, кг/м3', **styles)
+            qraph1.setLabel('bottom', 'Расстояние, м2', **styles)
+            qraph1.showGrid(x=True, y=True)
+
+            qraph2 = self.chart_layout.addPlot(x=radius, y=dose, pen=pen2, row=1, col=0)
+            qraph2.setLabel('left', 'Токсодоза, мг*мин/л', **styles)
+            qraph2.setLabel('bottom', 'Расстояние, м2', **styles)
+            qraph2.showGrid(x=True, y=True)
+
+            qraph3 = self.chart_layout.addPlot(x=radius, y=width, pen=pen3, row=2, col=0)
+            qraph3.setLabel('left', 'Ширина облака, м', **styles)
+            qraph3.setLabel('bottom', 'Расстояние, м2', **styles)
+            qraph3.showGrid(x=True, y=True)
+
+        if text == 'Тяжелый газ (втор.облако)':
+            dose, conc, radius, width = data
+
+            qraph1 = self.chart_layout.addPlot(x=radius, y=conc, pen=pen1, row=0, col=0)
+            qraph1.setLabel('left', 'Концентрация, кг/м3', **styles)
+            qraph1.setLabel('bottom', 'Расстояние, м2', **styles)
+            qraph1.showGrid(x=True, y=True)
+
+            qraph2 = self.chart_layout.addPlot(x=radius, y=dose, pen=pen2, row=1, col=0)
+            qraph2.setLabel('left', 'Токсодоза, мг*мин/л', **styles)
+            qraph2.setLabel('bottom', 'Расстояние, м2', **styles)
+            qraph2.showGrid(x=True, y=True)
+
+            qraph3 = self.chart_layout.addPlot(x=radius, y=width, pen=pen3, row=2, col=0)
+            qraph3.setLabel('left', 'Ширина облака, м', **styles)
+            qraph3.setLabel('bottom', 'Расстояние, м2', **styles)
+            qraph3.showGrid(x=True, y=True)
+
 
     def save_chart(self):
         exporter = pg_exp.ImageExporter(self.chart_layout.scene())

@@ -12,30 +12,33 @@
 import math
 
 GRAVITY = 9.81  # ускорение свободного падения м/с2
-KGM3_TO_MGLITER = 1000 # кг/м3 в мг/л
+KGM3_TO_MGLITER = 1000  # кг/м3 в мг/л
 
 
 class Instantaneous_source:
-    def __init__(self, wind_speed: int, density_air: float):
+    def __init__(self, wind_speed: float, density_air: float, density_init: float, volume_gas: float):
         """
         Класс предназначен для расчета выброса тяжелого газа
 
-        wind_speed - скорость ветра, м/с
-        density_air - плотность воздуха, кг/м3
+        :paramwind_speed - скорость ветра, м/с
+        :paramdensity_air - плотность воздуха, кг/м3
+        :param density_init: - плотность газа, кг/м3
+        :param volume_gas: - объем газа, м3
         """
         self.wind_speed = wind_speed
         self.density_air = density_air
+        self.density_init = density_init
+        self.volume_gas = volume_gas
 
-    def alpha(self, density_init: float, volume_gas: float) -> float:
+    def alpha(self) -> float:
         '''
         Britter and McQuaid diagram - апроксимация
-        :param density_init: - плотность газа, кг/м3
-        :param volume_gas: - объем газа, м3
+
         :return: alpha_aprox - параметр для апроксимации графика (альфа-параметр)
         Figure C5.20. Britter and McQuaid diagram [Britter & McQuaid 1988]
         '''
-        g0 = (GRAVITY * (density_init - self.density_air)) / self.density_air
-        alpha_aprox = (1 / 2) * math.log10(g0 * math.pow(volume_gas, 1 / 3) / math.pow(self.wind_speed, 2))
+        g0 = (GRAVITY * (self.density_init - self.density_air)) / self.density_air
+        alpha_aprox = (1 / 2) * math.log10(g0 * math.pow(self.volume_gas, 1 / 3) / math.pow(self.wind_speed, 2))
         return alpha_aprox
 
     def beta(self, alpha_aprox: float, concentration: float) -> float:
@@ -117,38 +120,33 @@ class Instantaneous_source:
 
         return beta_aprox
 
-    def find_distance(self, beta_aprox: float, volume_gas: float) -> float:
+    def find_distance(self, beta_aprox: float) -> float:
         '''
         Функция поиска расстояния для облака
         :param beta_aprox: - параметр для апроксимации графика (бета-параметр)
-        :param volume_gas: - объем газа, м3
         :return: x_dist - расстояние, м
         '''
-        x_dist = math.pow(10, beta_aprox) * math.pow(volume_gas, 1 / 3)
+        x_dist = math.pow(10, beta_aprox) * math.pow(self.volume_gas, 1 / 3)
         return x_dist
 
-    def find_time(self, x_dist: float, volume_gas: float, density_gas: float, diametr_cloud: float):
+    def find_time(self, x_dist: float):
         '''
 
         :param x_dist: - расстояние, м
-        :param volume_gas: - объем газа, м3
-        :param density_gas: - плотность газа, кг/м3
-        :param diametr_cloud: - диаметр облака начальный, м
         :return: (time, b_param) - время, с и ширина облака, м
         '''
-        g0 = (GRAVITY * (density_gas - self.density_air)) / self.density_air
+        diametr_cloud = math.pow(self.volume_gas / math.pi, 1 / 3)
+        g0 = (GRAVITY * (self.density_init - self.density_air)) / self.density_air
         time = 0
         while True:
-            if math.fabs((math.sqrt(diametr_cloud * diametr_cloud + 1.2 * time * math.sqrt(g0 * volume_gas))) - (
+            if math.fabs((math.sqrt(diametr_cloud * diametr_cloud + 1.2 * time * math.sqrt(g0 * self.volume_gas))) - (
                     x_dist - 0.4 * self.wind_speed * time)) < 0.1:
                 return (time, x_dist - 0.4 * self.wind_speed * time)
             time += 0.01
 
-    def concentration(self, volume_gas: float, density_gas: float, diametr_cloud: float):
+    def concentration(self):
         '''
 
-        :param volume_gas: - объем газа, м3
-        :param density_gas: - плотность газа, кг/м3
         :param diametr_cloud: - диаметр облака начальный, м
         :return: (data_concentration, data_x_dist, data_width, data_time)
         концентрации кг/м3;
@@ -165,11 +163,12 @@ class Instantaneous_source:
         limit_concentration = (0.1, 0.05, 0.02, 0.01, 0.005, 0.002, 0.001)
 
         for item_concentration in limit_concentration:
-            alpha = self.alpha(density_gas, volume_gas)
+            alpha = self.alpha()
             beta = self.beta(alpha, item_concentration)
-            x_dist = self.find_distance(beta, volume_gas)
-            conc_in_dist = density_gas * item_concentration
-            time_arr = self.find_time(x_dist, volume_gas, density_gas, diametr_cloud)
+            x_dist = self.find_distance(beta)
+            conc_in_dist = self.density_init * item_concentration
+            time_arr = self.find_time(x_dist)
+            print('item_concentration')
             time_cloud = time_arr[0]
             b_eq = time_arr[1]
 
@@ -180,37 +179,46 @@ class Instantaneous_source:
 
         return (data_concentration, data_x_dist, data_width, data_time)
 
-    def toxic_dose(self, concentration: float, time: int, n=3):
+    def toxic_dose(self, concentration: float):
         '''
         :param concentration - концентрация, кг/м3
-        :param time - время экспозиции, мин
-        :param n - эмпирический коэф., допускается принимать равным 3 (стр.266 Fires, explosions, and toxic gas...)
-
-        :return: (dose): float: - токсодоза, мг*мин/л
+        :return: (dose): float: - токсодоза, мг*мин/л (переход взят из методики ТОКСИ2)
         '''
-        dose = math.pow(concentration*KGM3_TO_MGLITER, n) * time
+        dose = ((2 * math.pow(2 * math.pi, 2)) / self.wind_speed) * concentration * 16.67
         return dose
 
+    def result(self):
+        data = self.concentration()
+        return [[self.toxic_dose(i) for i in data[0]], data[0], data[1], data[2], data[3]]
+
+
 class Continuous_source:
-    def __init__(self, wind_speed: int, density_air: float):
+    def __init__(self, wind_speed: int, density_air: float, density_init: float, gas_flow: float, radius_flow: float):
         """
         Класс предназначен для расчета выброса тяжелого газа
 
-        wind_speed - скорость ветра, м/с
-        density_air - плотность воздуха, кг/м3
+        :param  wind_speed - скорость ветра, м/с
+        :param density_air - плотность воздуха, кг/м3
+        :param density_init: - плотность газа, кг/м3
+        :param gas_flow: - расход газа, кг/с
+        :param radius_flow: - радиус выброса, м
+
+
         """
         self.wind_speed = wind_speed
         self.density_air = density_air
+        self.density_init = density_init
+        self.gas_flow = gas_flow
+        self.radius_flow = radius_flow
 
-    def alpha(self, density_init: float, volumetric_consumption_gas: float) -> float:
+    def alpha(self) -> float:
         '''
         Britter and McQuaid diagram - апроксимация
-        :param density_init: - плотность газа, кг/м3
-        :param volumetric_consumption_gas: - объемный расход газа, м3/с
         :return: alpha_aprox - параметр для апроксимации графика (альфа-параметр)
         Figure C5.17. Britter and McQuaid diagram [Britter & McQuaid 1988].
         '''
-        g0 = (9.81 * (density_init - 1.21)) / 1.21
+        volumetric_consumption_gas = self.gas_flow / self.density_init
+        g0 = (9.81 * (self.density_init - 1.21)) / 1.21
         alpha_aprox = (1 / 5) * math.log10(g0 * g0 * volumetric_consumption_gas / math.pow(self.wind_speed, 5))
         return alpha_aprox
 
@@ -297,22 +305,18 @@ class Continuous_source:
 
         return beta_aprox
 
-    def find_distance(self, beta_aprox: float, volumetric_consumption_gas: float) -> float:
+    def find_distance(self, beta_aprox: float) -> float:
         '''
         Функция поиска расстояния для облака
         :param beta_aprox: - параметр для апроксимации графика (бета-параметр)
-        :param volumetric_consumption_gas: - объемный расход газа, м3/с
         :return: x_dist - расстояние, м
         '''
+        volumetric_consumption_gas = self.gas_flow / self.density_init
         x_dist = math.pow(10, beta_aprox) * math.pow(volumetric_consumption_gas / self.wind_speed, 0.5)
         return x_dist
 
-    def concentration(self, volumetric_consumption_gas: float, density_gas: float, diametr_cloud: float):
+    def concentration(self):
         '''
-
-        :param volumetric_consumption_gas: - объемный расход газа, м3/с
-        :param density_gas: - плотность газа, кг/м3
-        :param diametr_cloud: - диаметр облака начальный, м
         :return: (data_concentration, data_x_dist, data_width, data_time)
         концентрации кг/м3;
         расстояние, м
@@ -323,17 +327,18 @@ class Continuous_source:
         data_x_dist = []
         data_width = []
 
+        volumetric_consumption_gas = self.gas_flow / self.density_init
+
         limit_concentration = (0.1, 0.05, 0.02, 0.01, 0.005, 0.002)
 
-
         for item_concentration in limit_concentration:
-            g0 = (GRAVITY * (density_gas - self.density_air)) / self.density_air
-            alpha = self.alpha(density_gas, volumetric_consumption_gas)
+            g0 = (GRAVITY * (self.density_init - self.density_air)) / self.density_air
+            alpha = self.alpha()
             beta = self.beta(alpha, item_concentration)
-            x_dist = self.find_distance(beta, volumetric_consumption_gas)
-            conc_in_dist = density_gas * item_concentration
+            x_dist = self.find_distance(beta)
+            conc_in_dist = self.density_init * item_concentration
             l_b = g0 * volumetric_consumption_gas / math.pow(self.wind_speed, 3)
-            widht_plume = 2 * diametr_cloud + 8 * l_b + 2.5 * math.pow(l_b, 1 / 3) * math.pow(x_dist, 2 / 3)
+            widht_plume = 2 * self.radius_flow + 8 * l_b + 2.5 * math.pow(l_b, 1 / 3) * math.pow(x_dist, 2 / 3)
 
             data_concentration.append(conc_in_dist)
             data_x_dist.append(x_dist)
@@ -341,32 +346,22 @@ class Continuous_source:
 
         return (data_concentration, data_x_dist, data_width)
 
-    def toxic_dose(self, concentration: float, time: int, n=3):
+    def toxic_dose(self, concentration: float):
         '''
         :param concentration - концентрация, кг/м3
-        :param time - время экспозиции, мин
-        :param n - эмпирический коэф., допускается принимать равным 3 (стр.266 Fires, explosions, and toxic gas...)
-
-        :return: (dose): float: - токсодоза, мг*мин/л
+        :return: (dose): float: - токсодоза, мг*мин/л (переход взят из методики ТОКСИ2)
         '''
-        dose = math.pow(concentration*KGM3_TO_MGLITER, n) * time
+        dose = ((2 * math.pow(2 * math.pi, 2)) / self.wind_speed) * concentration * 16.67
         return dose
+
+    def result(self):
+        data = self.concentration()
+        return [[self.toxic_dose(i) for i in data[0]], data[0], data[1], data[2]]
 
 
 if __name__ == '__main__':
-    # cls = Instantaneous_source(1, 1.21)
-    # print(cls.alpha(6, 10))
-    # print(cls.alpha(2, 20))
-    # print(cls.beta(0.96, 0.6))
-    # print(cls.beta(0.62, 0.6))
-    # print(cls.find_distance(1.79, 10))
-    # print(cls.find_distance(1.88, 10))
-    # print(cls.find_time(132, 10, 6, 1))
-    # print(cls.find_time(163, 10, 6, 1))
-    # print(cls.concentration(10, 6, 5))
+    # cls = Instantaneous_source(wind_speed=4, density_air=1.21, density_init=6, volume_gas=10)
+    # print(cls.concentration())
 
-    cls = Continuous_source(4, 1.21)
-    print(cls.alpha(6,1))
-    print(cls.beta(0.033,0.01))
-    print(cls.find_distance(2.37,1))
-    print(cls.concentration(1,6,2))
+    cls = Continuous_source(wind_speed=1, density_air=1.21, density_init=6, gas_flow=1)
+    print(cls.concentration())

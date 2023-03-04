@@ -22,6 +22,7 @@ from calc import calc_sp_explosion
 from calc import calc_tvs_explosion
 from calc import calc_light_gas_disp
 from calc import calc_heavy_gas_disp
+from calc import calc_gas_outflow_small_hole  # истечение газ-емкость
 
 METODS_AND_PARAMETRS = {
     'Пожар пролива': ('Площадь, м2', 'm, кг/(с*м2) ', 'Mmol, кг/кмоль', 'Ткип, град.С', 'Ветер, м/с'),
@@ -36,7 +37,11 @@ METODS_AND_PARAMETRS = {
     'Тяжелый газ (перв.облако)': (
         'Скорость ветра, м/с', 'Плотность воздуха, кг/м3', 'Плотность газа, кг/м3', 'Объем газа, м3'),
     'Тяжелый газ (втор.облако)': (
-    'Скорость ветра, м/с', 'Плотность воздуха, кг/м3', 'Плотность газа, кг/м3', 'Расход газа, кг/с', 'Радиус выброса, м')
+        'Скорость ветра, м/с', 'Плотность воздуха, кг/м3', 'Плотность газа, кг/м3', 'Расход газа, кг/с',
+        'Радиус выброса, м'),
+    'Истечение газа (емк.)': (
+    'Объем емк., м3', 'Давление, МПа', 'Тем-ра газа, град. С', 'Молекулярная масса, кг/кмоль', 'Коэф. адиабаты, -',
+    'Диаметр отверстия, мм')
 }
 
 
@@ -122,7 +127,7 @@ class Calc_gui(QtWidgets.QMainWindow):
         toxic_menu.addAction(book_ico, 'Тяжелый газ (втор.облако)', self.change_method)
         # 4. Количество опасного вещества
         mass_menu = method_menu.addMenu(select_ico, 'Оценка количества опасного вещества')
-        mass_menu.addAction(book_ico, 'Истечение газа (емкость)', self.change_method)
+        mass_menu.addAction(book_ico, 'Истечение газа (емк.)', self.change_method)
         mass_menu.addAction(book_ico, 'Истечение газа (трубопровод)', self.change_method)
         mass_menu.addAction(book_ico, 'Истечение жидкости (емкость)', self.change_method)
         mass_menu.addAction(book_ico, 'Истечение жидкости (трубопровод)', self.change_method)
@@ -264,6 +269,11 @@ class Calc_gui(QtWidgets.QMainWindow):
             self.result_text.setPlainText(self.report(text, []))
             self.create_chart(text, data)
 
+        elif text == 'Истечение газа (емк.)':
+            data = calc_gas_outflow_small_hole.Outflow(*data).result()
+            self.result_text.setPlainText(self.report(text, []))
+            self.create_chart(text, data)
+
     def report(self, text: str, data: list):
         """
         Функция оформления отчета по зонам действия поражающих факторов
@@ -301,6 +311,10 @@ class Calc_gui(QtWidgets.QMainWindow):
             return (f'Расчет по модели "тяжелого газа" \n'
                     f'Авторы Britter and McQuaid')
 
+        elif text == 'Истечение газа (емк.)':
+            return (f'Расчет истечения газа из емкости. \n'
+                    f'Размер отвестия намного меньше размера оборудования')
+
     def create_chart(self, text: str, data: tuple):
         """
         Функция отрисовки графических зависимостей
@@ -334,7 +348,7 @@ class Calc_gui(QtWidgets.QMainWindow):
             qraph3.setLabel('bottom', 'Расстояние от центра пролива, м2', **styles)
             qraph3.showGrid(x=True, y=True)
 
-        if text == 'Огненный шар':
+        elif text == 'Огненный шар':
             radius, q, dose, pr, vp = data
 
             qraph1 = self.chart_layout.addPlot(x=radius, y=q, pen=pen1, row=0, col=0)
@@ -357,7 +371,7 @@ class Calc_gui(QtWidgets.QMainWindow):
             qraph4.setLabel('bottom', 'Расстояние, м2', **styles)
             qraph4.showGrid(x=True, y=True)
 
-        if text == 'Взрыв (СП 12.13130-2009)' or text == 'Взрыв (Методика ТВС)':
+        elif text == 'Взрыв (СП 12.13130-2009)' or text == 'Взрыв (Методика ТВС)':
             radius, pressure, impuls, pr, vp = data
 
             qraph1 = self.chart_layout.addPlot(x=radius, y=pressure, pen=pen1, row=0, col=0)
@@ -380,7 +394,7 @@ class Calc_gui(QtWidgets.QMainWindow):
             qraph4.setLabel('bottom', 'Расстояние, м2', **styles)
             qraph4.showGrid(x=True, y=True)
 
-        if text == 'Легкий газ':
+        elif text == 'Легкий газ':
             dist, conc, toxic_dose = data
 
             qraph1 = self.chart_layout.addPlot(x=dist, y=conc, pen=pen1, row=0, col=0)
@@ -393,7 +407,7 @@ class Calc_gui(QtWidgets.QMainWindow):
             qraph2.setLabel('bottom', 'Расстояние, м2', **styles)
             qraph2.showGrid(x=True, y=True)
 
-        if text == 'Тяжелый газ (перв.облако)':
+        elif text == 'Тяжелый газ (перв.облако)':
             dose, conc, radius, width, _ = data
 
             qraph1 = self.chart_layout.addPlot(x=radius, y=conc, pen=pen1, row=0, col=0)
@@ -411,7 +425,7 @@ class Calc_gui(QtWidgets.QMainWindow):
             qraph3.setLabel('bottom', 'Расстояние, м2', **styles)
             qraph3.showGrid(x=True, y=True)
 
-        if text == 'Тяжелый газ (втор.облако)':
+        elif text == 'Тяжелый газ (втор.облако)':
             dose, conc, radius, width = data
 
             qraph1 = self.chart_layout.addPlot(x=radius, y=conc, pen=pen1, row=0, col=0)
@@ -429,6 +443,28 @@ class Calc_gui(QtWidgets.QMainWindow):
             qraph3.setLabel('bottom', 'Расстояние, м2', **styles)
             qraph3.showGrid(x=True, y=True)
 
+        elif text == 'Истечение газа (емк.)':
+            weight, time, temperature, _, pressure, mass_flow_rate, _, _ = data
+
+            qraph1 = self.chart_layout.addPlot(x=time, y=weight, pen=pen1, row=0, col=0)
+            qraph1.setLabel('left', 'Масса газа в емк., кг', **styles)
+            qraph1.setLabel('bottom', 'Время, с', **styles)
+            qraph1.showGrid(x=True, y=True)
+
+            qraph2 = self.chart_layout.addPlot(x=time, y=temperature, pen=pen2, row=1, col=0)
+            qraph2.setLabel('left', 'Температура газа в емк., град.С', **styles)
+            qraph2.setLabel('bottom', 'Время, с', **styles)
+            qraph2.showGrid(x=True, y=True)
+
+            qraph3 = self.chart_layout.addPlot(x=time, y=pressure, pen=pen3, row=2, col=0)
+            qraph3.setLabel('left', 'Давление, МПа', **styles)
+            qraph3.setLabel('bottom', 'Время, с', **styles)
+            qraph3.showGrid(x=True, y=True)
+
+            qraph4 = self.chart_layout.addPlot(x=time, y=mass_flow_rate, pen=pen4, row=3, col=0)
+            qraph4.setLabel('left', 'Расход газа, кг/с', **styles)
+            qraph4.setLabel('bottom', 'Время, с', **styles)
+            qraph4.showGrid(x=True, y=True)
 
     def save_chart(self):
         exporter = pg_exp.ImageExporter(self.chart_layout.scene())

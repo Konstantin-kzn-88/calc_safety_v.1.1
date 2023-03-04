@@ -23,6 +23,7 @@ from calc import calc_tvs_explosion
 from calc import calc_light_gas_disp
 from calc import calc_heavy_gas_disp
 from calc import calc_gas_outflow_small_hole  # истечение газ-емкость
+from calc import calc_gas_outflow_big_hole  # истечение газ-труба на разрыв
 
 METODS_AND_PARAMETRS = {
     'Пожар пролива': ('Площадь, м2', 'm, кг/(с*м2) ', 'Mmol, кг/кмоль', 'Ткип, град.С', 'Ветер, м/с'),
@@ -40,8 +41,11 @@ METODS_AND_PARAMETRS = {
         'Скорость ветра, м/с', 'Плотность воздуха, кг/м3', 'Плотность газа, кг/м3', 'Расход газа, кг/с',
         'Радиус выброса, м'),
     'Истечение газа (емк.)': (
-    'Объем емк., м3', 'Давление, МПа', 'Тем-ра газа, град. С', 'Молекулярная масса, кг/кмоль', 'Коэф. адиабаты, -',
-    'Диаметр отверстия, мм')
+        'Объем емк., м3', 'Давление, МПа', 'Тем-ра газа, град. С', 'Молекулярная масса, кг/кмоль', 'Коэф. адиабаты, -',
+        'Диаметр отверстия, мм'),
+    'Истечение газа (труб.)': (
+        'Диаметр трубопровода, м', 'Длина трубопровода, м', 'Давление, МПа', 'Тем-ра газа, град. С',
+        'Молекулярная масса, кг/кмоль', 'Коэф. адиабаты, -')
 }
 
 
@@ -128,7 +132,7 @@ class Calc_gui(QtWidgets.QMainWindow):
         # 4. Количество опасного вещества
         mass_menu = method_menu.addMenu(select_ico, 'Оценка количества опасного вещества')
         mass_menu.addAction(book_ico, 'Истечение газа (емк.)', self.change_method)
-        mass_menu.addAction(book_ico, 'Истечение газа (трубопровод)', self.change_method)
+        mass_menu.addAction(book_ico, 'Истечение газа (труб.)', self.change_method)
         mass_menu.addAction(book_ico, 'Истечение жидкости (емкость)', self.change_method)
         mass_menu.addAction(book_ico, 'Истечение жидкости (трубопровод)', self.change_method)
         mass_menu.addAction(book_ico, 'Испарение жидкости', self.change_method)
@@ -274,6 +278,11 @@ class Calc_gui(QtWidgets.QMainWindow):
             self.result_text.setPlainText(self.report(text, []))
             self.create_chart(text, data)
 
+        elif text == 'Истечение газа (труб.)':
+            data = calc_gas_outflow_big_hole.Outflow(*data).result()
+            self.result_text.setPlainText(self.report(text, []))
+            self.create_chart(text, data)
+
     def report(self, text: str, data: list):
         """
         Функция оформления отчета по зонам действия поражающих факторов
@@ -312,8 +321,13 @@ class Calc_gui(QtWidgets.QMainWindow):
                     f'Авторы Britter and McQuaid')
 
         elif text == 'Истечение газа (емк.)':
-            return (f'Расчет истечения газа из емкости. \n'
+            return (f'Расчет истечения газа из емкости (трубопровода). \n'
                     f'Размер отвестия намного меньше размера оборудования')
+
+        elif text == 'Истечение газа (труб.)':
+            return (f'Расчет истечения газа из трубопровода на разрыв. \n'
+                    f'Размер отвестия достаточно большой \n'
+                    f'для ударной волны, которая движется со скоростью звука \n')
 
     def create_chart(self, text: str, data: tuple):
         """
@@ -465,6 +479,14 @@ class Calc_gui(QtWidgets.QMainWindow):
             qraph4.setLabel('left', 'Расход газа, кг/с', **styles)
             qraph4.setLabel('bottom', 'Время, с', **styles)
             qraph4.showGrid(x=True, y=True)
+
+        elif text == 'Истечение газа (труб.)':
+            time, mass_flow_rate = data
+
+            qraph1 = self.chart_layout.addPlot(x=time, y=mass_flow_rate, pen=pen1, row=0, col=0)
+            qraph1.setLabel('left', 'Расход, кг/с', **styles)
+            qraph1.setLabel('bottom', 'Время, с', **styles)
+            qraph1.showGrid(x=True, y=True)
 
     def save_chart(self):
         exporter = pg_exp.ImageExporter(self.chart_layout.scene())

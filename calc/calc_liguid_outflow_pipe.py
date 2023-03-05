@@ -12,6 +12,7 @@ GRAVITY = 9.81  # ускорение свободного падения м/с2
 DISCHARGE = 0.6  # коэф.истечения, допускается брать 0.6 (p.31 РБ оценка риска на нефтедобыче)
 PRESSURE_ATM = 101325  # атмосферное давление, Па
 MPA_TO_PA = math.pow(10, 6)  # МПа в Па
+MM_TO_M = math.pow(10, -3)  # мм в м
 
 
 class Outflow_in_one_section_pipe:
@@ -23,20 +24,20 @@ class Outflow_in_one_section_pipe:
         :param common_pressure: начальное давление, МПа
         :param z1: высотная отметка, м
         :param z2: высотная отметка, м
-        :param diametr: диаметр, м
+        :param diametr: диаметр, мм
         :param density: плотность, кг/м3
         :param lenght: длина участка трубопровода, м
-        :param hole: отверстие истечения, м
+        :param hole: отверстие истечения, мм
         :param time_shutdown: время отключения давления, с
         :param time_closing: время арматуры, с
         '''
         self.common_pressure = common_pressure * MPA_TO_PA
         self.z1 = z1
         self.z2 = z2
-        self.diametr = diametr
+        self.diametr = diametr*MM_TO_M
         self.density = density
         self.lenght = lenght
-        self.hole = hole
+        self.hole = hole*MM_TO_M
         self.time_shutdown = time_shutdown
         self.time_closing = time_closing
 
@@ -74,38 +75,35 @@ class Outflow_in_one_section_pipe:
         mass_in_pipe = (math.pi * math.pow(self.diametr/2, 2)*self.lenght) * self.density  # кг
 
         while True:
-            if time_init == 0:
+            # Напорный режим
+            if time_init <= self.time_shutdown:
                 mass_liquid.append(mass_in_pipe)
                 time.append(time_init)
                 flow_rate.append(self.pressure_flow_rate())
-            elif time_init > 0  and time_init <= self.time_shutdown:
+            # Безнапорный режим с подпором других учатков
+            elif time_init > self.time_shutdown  and time_init <= self.time_shutdown+self.time_closing:
                 mass_liquid.append(mass_in_pipe)
                 time.append(time_init)
                 flow_rate.append(self.non_pressure_flow_rate(self.z1, self.z2))
-            elif time_init > self.time_shutdown :
+            # Безнапорный режим после закрытия арматуры
+            elif time_init > self.time_shutdown+self.time_closing:
                 volume = mass_liquid[-1]/self.density
-                volume_init = mass_liquid[0] / self.density
-                k = volume/volume_init
+                lenght = volume/(math.pi*math.pow(self.diametr/2,2))
 
-                print(k)
-                mass_in_pipe =mass_liquid[-1] - self.non_pressure_flow_rate(self.z1*k, self.z2)
+                z1  = (self.z1 - self.z2) * (lenght/self.lenght) + self.z2
+                mass_in_pipe =mass_liquid[-1] - self.non_pressure_flow_rate(z1, self.z2)
                 mass_liquid.append(mass_in_pipe)
                 time.append(time_init)
-                flow_rate.append(self.non_pressure_flow_rate(self.z1*k, self.z2))
+                flow_rate.append(self.non_pressure_flow_rate(z1, self.z2))
                 if flow_rate[-1] < 10: break
 
-
-
             time_init += 1
-
-
 
         return (mass_liquid, time, flow_rate)
 
 
 if __name__ == '__main__':
-    cls = Outflow_in_one_section_pipe(common_pressure=2, z1=250, z2=120, diametr=0.1, density=900,
+    cls = Outflow_in_one_section_pipe(common_pressure=2, z1=250, z2=120, diametr=100, density=900,
                                       lenght=1000,
-                                      hole=0.09, time_shutdown=3, time_closing=3)
-    # print(cls.non_pressure_flow_rate(170,120))
+                                      hole=90, time_shutdown=3, time_closing=3)
     print(cls.result())

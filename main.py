@@ -25,7 +25,8 @@ from calc import calc_heavy_gas_disp
 from calc import calc_gas_outflow_small_hole  # истечение газ-емкость
 from calc import calc_gas_outflow_big_hole  # истечение газ-труба на разрыв
 from calc import calc_liguid_outflow_tank
-from calc import  calc_liguid_outflow_pipe
+from calc import calc_liguid_outflow_pipe
+from calc import  calc_liguid_evaporation
 
 METODS_AND_PARAMETRS = {
     'Пожар пролива': ('Площадь, м2', 'm, кг/(с*м2) ', 'Mmol, кг/кмоль', 'Ткип, град.С', 'Ветер, м/с'),
@@ -52,8 +53,10 @@ METODS_AND_PARAMETRS = {
         'Объем емк., м3', 'Высота взлива, м', 'Давление, МПа',
         'Степень заполнения,-', ' Диаметр отверстия, мм', 'Плотность жидкости, кг/м3'),
     'Истечение жидкости (труб.)': (
-    'Давление, МПа', 'Высот.отм. z1, м', 'Высот.отм. z2, м', ' Диаметр трубы, мм', 'Плотность жидкости, кг/м3',
-    'Длина трубопровода, м', ' Диаметр отверстия, мм', ' Время отключения давления, с', ' Время закрытия арматуры, с')
+        'Давление, МПа', 'Высот.отм. z1, м', 'Высот.отм. z2, м', ' Диаметр трубы, мм', 'Плотность жидкости, кг/м3',
+        'Длина трубопровода, м', ' Диаметр отверстия, мм', ' Время отключения давления, с',
+        ' Время закрытия арматуры, с'),
+    'Испарение жидкости': ('Давление пара, кПа', 'Молярная масса, кг/кмоль', 'Площадь пролива, м2')
 }
 
 
@@ -301,6 +304,10 @@ class Calc_gui(QtWidgets.QMainWindow):
             self.result_text.setPlainText(self.report(text, data[2]))
             self.create_chart(text, data)
 
+        elif text == 'Испарение жидкости':
+            data = calc_liguid_evaporation.Liquid_evaporation().evaporation_array(*data)
+            self.result_text.setPlainText(self.report(text, data[1]))
+            self.create_chart(text, data)
 
     def report(self, text: str, data: list):
         """
@@ -354,8 +361,11 @@ class Calc_gui(QtWidgets.QMainWindow):
 
         elif text == 'Истечение жидкости (труб.)':
             return (f'Расчет истечения жидкости из трубопровода. \n'
-                    f'Масса жидкости в проливе{sum(data)} кг. \n')
+                    f'Масса жидкости в проливе{round(sum(data), 1)} кг. \n')
 
+        elif text == 'Испарение жидкости':
+            return (f'Расчет испарения ненагретой жидкости. \n'
+                    f'Масса испарившейся жидкости {round((data[-1]), 1)} кг. \n')
 
     def create_chart(self, text: str, data: tuple):
         """
@@ -546,6 +556,14 @@ class Calc_gui(QtWidgets.QMainWindow):
             qraph2.setLabel('left', 'Масса жидкости в трубопроводе, кг', **styles)
             qraph2.setLabel('bottom', 'Время, с', **styles)
             qraph2.showGrid(x=True, y=True)
+
+        elif text == 'Испарение жидкости':
+            time_arr, evaporatiom_arr = data
+
+            qraph1 = self.chart_layout.addPlot(x=time_arr, y=evaporatiom_arr, pen=pen1, row=0, col=0)
+            qraph1.setLabel('left', 'Масса испарившейся жидкости, кг', **styles)
+            qraph1.setLabel('bottom', 'Время, с', **styles)
+            qraph1.showGrid(x=True, y=True)
 
     def save_chart(self):
         exporter = pg_exp.ImageExporter(self.chart_layout.scene())

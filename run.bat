@@ -1,0 +1,1 @@
+C:\python\calc_safety_v.1.1\venv\Scripts\python.exe main.py

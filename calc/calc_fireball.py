@@ -29,8 +29,10 @@ class Fireball:
             raise ValueError(f'Фукнция не может принимать нулевые параметры')
 
         D_eff = 5.33 * pow(mass, 0.327)
+        print(f'D_eff= {D_eff}')
         H_eff = D_eff / 2
         t_s = 0.92 * pow(mass, 0.303)
+        print(f't_s= {t_s}')
 
         Fq = (H_eff / D_eff + 0.5) / (4 * ((((H_eff / D_eff + 0.5) ** 2) +
                                             ((radius / D_eff) ** 2)) ** 1.5))
@@ -115,7 +117,7 @@ if __name__ == '__main__':
 
     # ГОСТ 12.3.047-98 прил.Д
     ev_class = Fireball()
-    mass = 2000
-    ef = 450
-    radius = 100
-    print(ev_class.fireball_point(mass, ef, radius)) #(по ГОСТ q_ball=12.9)
+    mass = 36000
+    ef = 350
+    radius = 97
+    print(ev_class.termal_class_zone(mass, ef)) #(по ГОСТ q_ball=12.9)

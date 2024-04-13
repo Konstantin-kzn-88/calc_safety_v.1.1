@@ -89,7 +89,7 @@ class Strait_fire:
 
         tay = math.exp(-7 * math.pow(10, -4) * (radius - 0.5 * D_eff))
 
-        E_f = 140 * math.pow(2.7, -0.12 * D_eff) + 20 * (1 - math.pow(2.7, -0.12 * D_eff))
+        E_f = 25
 
         q_term = Fq * tay * E_f
 

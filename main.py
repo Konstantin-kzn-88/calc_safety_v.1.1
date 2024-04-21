@@ -28,6 +28,7 @@ from calc import calc_liguid_outflow_tank
 from calc import calc_liguid_outflow_pipe
 from calc import calc_liguid_evaporation
 from calc import calc_evaporation_LPG
+from calc import calc_liquid_overflow
 
 METODS_AND_PARAMETRS = {
     'Пожар пролива': ('Площадь, м2', 'm, кг/(с*м2) ', 'Mmol, кг/кмоль', 'Ткип, град.С', 'Ветер, м/с'),
@@ -59,13 +60,11 @@ METODS_AND_PARAMETRS = {
         ' Время закрытия арматуры, с'),
     'Испарение жидкости': ('Давление пара, кПа', 'Молярная масса, кг/кмоль', 'Площадь пролива, м2'),
     'Испарение СУГ': ('Молярная масса, кг/кмоль', 'Площадь пролива, м2', 'Скорость ветра, м/с', 'Тем-ра газа, град. С',
-                      'Тем-ра поверхности, град. С')
+                      'Тем-ра поверхности, град. С'),
+    'Гидродинамический перелив': ('Высота столба жидкости, м', 'Объем жидкости, м3',
+                                  'Расстояние до обвалования, м', 'Высота отбортовки, м')
 }
 
-
-# ,  'Испарение ненагретой жидкости'
-# PARAMETRS =
-#              ('Давление пара, кПа', 'Mmol, кг/кмоль', 'Площадь пролива, м2')]
 
 
 class Calc_gui(QtWidgets.QMainWindow):
@@ -151,6 +150,7 @@ class Calc_gui(QtWidgets.QMainWindow):
         mass_menu.addAction(book_ico, 'Истечение жидкости (труб.)', self.change_method)
         mass_menu.addAction(book_ico, 'Испарение жидкости', self.change_method)
         mass_menu.addAction(book_ico, 'Испарение СУГ', self.change_method)
+        mass_menu.addAction(book_ico, 'Гидродинамический перелив', self.change_method)
         # 5. Справка
         help_menu = menubar.addMenu('Справка')
         help_menu.addAction(question_ico, "Cправка", self.about_prog)
@@ -317,6 +317,11 @@ class Calc_gui(QtWidgets.QMainWindow):
             self.result_text.setPlainText(self.report(text, []))
             self.create_chart(text, data)
 
+        elif text == 'Гидродинамический перелив':
+            data = calc_liquid_overflow.LIGUID_OVERFLOW(*data).overflow_in_moment()
+            self.result_text.setPlainText(self.report(text, data[5]))
+            self.create_chart(text, data)
+
     def report(self, text: str, data: list):
         """
         Функция оформления отчета по зонам действия поражающих факторов
@@ -377,6 +382,9 @@ class Calc_gui(QtWidgets.QMainWindow):
 
         elif text == 'Истечение СУГ':
             return (f'Расчет испарения СУГ. \n')
+
+        elif text == 'Гидродинамический перелив':
+            return (f'Гидродинамический перелив составляет: {max(data)} % \n')
 
     def create_chart(self, text: str, data: tuple):
         """
@@ -583,6 +591,21 @@ class Calc_gui(QtWidgets.QMainWindow):
             qraph1.setLabel('left', 'Масса испарившейся жидкости, кг', **styles)
             qraph1.setLabel('bottom', 'Время, с', **styles)
             qraph1.showGrid(x=True, y=True)
+
+        elif text == 'Гидродинамический перелив':
+            t, s, hn, un, x, Q = data
+
+            qraph1 = self.chart_layout.addPlot(x=t, y=hn, pen=pen1, row=0, col=0)
+            qraph1.setLabel('left', 'Высота столба жидкости, м', **styles)
+            qraph1.setLabel('bottom', 'Время, с', **styles)
+            qraph1.showGrid(x=True, y=True)
+
+            qraph2 = self.chart_layout.addPlot(x=t, y=x, pen=pen2, row=1, col=0)
+            qraph2.setLabel('left', 'Положение переднего края волны, м', **styles)
+            qraph2.setLabel('bottom', 'Время, с', **styles)
+            qraph2.showGrid(x=True, y=True)
+
+
 
     def save_chart(self):
         exporter = pg_exp.ImageExporter(self.chart_layout.scene())

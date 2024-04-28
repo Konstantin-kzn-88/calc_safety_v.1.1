@@ -29,6 +29,7 @@ from calc import calc_liguid_outflow_pipe
 from calc import calc_liguid_evaporation
 from calc import calc_evaporation_LPG
 from calc import calc_liquid_overflow
+from calc import calc_damage
 
 METODS_AND_PARAMETRS = {
     'Пожар пролива': ('Площадь, м2', 'm, кг/(с*м2) ', 'Mmol, кг/кмоль', 'Ткип, град.С', 'Ветер, м/с'),
@@ -62,10 +63,10 @@ METODS_AND_PARAMETRS = {
     'Испарение СУГ': ('Молярная масса, кг/кмоль', 'Площадь пролива, м2', 'Скорость ветра, м/с', 'Тем-ра газа, град. С',
                       'Тем-ра поверхности, град. С'),
     'Гидродинамический перелив': ('Высота столба жидкости, м', 'Объем жидкости, м3',
-                                  'Расстояние до обвалования, м', 'Высота отбортовки, м')
+                                  'Расстояние до обвалования, м', 'Высота отбортовки, м'),
+    'Эконом.ущерб': ('Кол-во погибщих, чел', 'Кол-во пострадавших, чел', 'Аварийный объем, м3', 'Диаметр тр-да, мм',
+                      'Длина тр-да, м', 'Степень уничтожения (0...1)','Исп. масса, т', 'Масса пролива, т','Площадь пролива, м2',)
 }
-
-
 
 class Calc_gui(QtWidgets.QMainWindow):
     def __init__(self, parent=None) -> None:
@@ -151,7 +152,10 @@ class Calc_gui(QtWidgets.QMainWindow):
         mass_menu.addAction(book_ico, 'Испарение жидкости', self.change_method)
         mass_menu.addAction(book_ico, 'Испарение СУГ', self.change_method)
         mass_menu.addAction(book_ico, 'Гидродинамический перелив', self.change_method)
-        # 5. Справка
+        # 5. Ущерб
+        damage_menu = method_menu.addMenu(select_ico, 'Эконом.ущерб')
+        damage_menu.addAction(book_ico, 'Эконом.ущерб', self.change_method)
+        # 6. Справка
         help_menu = menubar.addMenu('Справка')
         help_menu.addAction(question_ico, "Cправка", self.about_prog)
 
@@ -322,6 +326,11 @@ class Calc_gui(QtWidgets.QMainWindow):
             self.result_text.setPlainText(self.report(text, data[5]))
             self.create_chart(text, data)
 
+        elif text == 'Эконом.ущерб':
+            data = calc_damage.Damage(*data).sum_damage()
+            self.result_text.setPlainText(self.report(text, data))
+            self.create_chart(text, data)
+
     def report(self, text: str, data: list):
         """
         Функция оформления отчета по зонам действия поражающих факторов
@@ -385,6 +394,14 @@ class Calc_gui(QtWidgets.QMainWindow):
 
         elif text == 'Гидродинамический перелив':
             return (f'Гидродинамический перелив составляет: {max(data)} % \n')
+
+        elif text == 'Эконом.ущерб':
+            return (f'Эконом.ущерб составляет: {round(sum(data),3)} млн.руб \n'
+                    f'а) cоц.-эконом. ущерб: {round(data[0],3)} млн.руб \n'
+                    f'б) прямой ущерб: {round(data[1],3)} млн.руб \n'
+                    f'в) затраты на ЛЛА: {round(data[2],3)} млн.руб \n'
+                    f'г) эколог. ущерб: {round(data[3],3)} млн.руб \n')
+
 
     def create_chart(self, text: str, data: tuple):
         """
@@ -605,7 +622,25 @@ class Calc_gui(QtWidgets.QMainWindow):
             qraph2.setLabel('bottom', 'Время, с', **styles)
             qraph2.showGrid(x=True, y=True)
 
+        elif text == 'Эконом.ущерб':
 
+            y = data
+            xlab = ['а', 'б', 'в', 'г']
+            xval = list(range(1, len(xlab) + 1))
+
+            ticks = []
+            for i, item in enumerate(xlab):
+                ticks.append((xval[i], item))
+            ticks = [ticks]
+
+            qraph1 = self.chart_layout.addPlot()
+            qraph1.setLabel(axis='left', text='Ущерб по видам, млн.руб')
+            qraph1.setLabel(axis='bottom', text='Виды ущерба')
+
+            bargraph = pg.BarGraphItem(x=xval, height=y, width=0.5)
+            qraph1.addItem(bargraph)
+            ax = qraph1.getAxis('bottom')
+            ax.setTicks(ticks)
 
     def save_chart(self):
         exporter = pg_exp.ImageExporter(self.chart_layout.scene())
